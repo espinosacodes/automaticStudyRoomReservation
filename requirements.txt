@@ -1,0 +1,3 @@
+selenium 
+crypytography
+webdriver-manager 
