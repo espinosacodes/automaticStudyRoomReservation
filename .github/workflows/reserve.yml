@@ -45,11 +45,10 @@ jobs:
           BANNER_PASSWORD: ${{ secrets.BANNER_PASSWORD }}
           RESERVATION_ROOM: ${{ vars.RESERVATION_ROOM }}
           RESERVATION_ACTIVITY: ${{ vars.RESERVATION_ACTIVITY }}
+          RESERVATION_PEOPLE: ${{ vars.RESERVATION_PEOPLE }}
         run: python main.py ${{ inputs.dry_run && '--dry-run' || '' }}
 
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
