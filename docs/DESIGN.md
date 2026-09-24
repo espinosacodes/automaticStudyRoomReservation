@@ -1,6 +1,6 @@
 # Design — automaticStudyRoomReservation
 
-> Reuses existing tokens. No new palette. Applies only to the optional status page at `collegeautomation.getcuria.us`.
+> Reuses existing tokens. No new palette. Applies only to the optional status page at `reservation.getcuria.us`.
 
 ## Source
 
@@ -43,7 +43,7 @@ Do not introduce purple, teal, or any new brand color.
 ### Layout
 
 - Single column, max `max-w-3xl`, centered, `bg-[#F8FAFC]` page, white rounded cards `rounded-2xl` with `border border-[#E5E7EB]`.
-- Top nav: small, `collegeautomation.getcuria.us` on left, `ICESI` badge on right. No marketing hero. This is a utility page, not a landing.
+- Top nav: small, `reservation.getcuria.us` on left, `ICESI` badge on right. No marketing hero. This is a utility page, not a landing.
 - Hero section: one line status: `Last run: success at 2026-09-23 23:59 Bogota` plus `Next: 2026-09-24 18:00` and a `View screenshots` link.
 - Cards: last 5 runs in a table (date, time range, account masked, result, screenshot link).
 - Empty state: `No runs yet. Trigger manually from GitHub Actions.` with a CTA to `workflow_dispatch`.
@@ -64,4 +64,4 @@ Reuse from Curia `apps/web/src/components`:
 
 ## Hosting note
 
-The page is static. Build with `pnpm --filter web build` and deploy to Cloudflare Pages. Custom domain `collegeautomation.getcuria.us` is set in the Cloudflare dashboard for the `getcuria.us` zone. No Worker routing needed.
+The page is static. Build with `pnpm --filter web build` and deploy to Cloudflare Pages. Custom domain `reservation.getcuria.us` is set in the Cloudflare dashboard for the `getcuria.us` zone. No Worker routing needed.

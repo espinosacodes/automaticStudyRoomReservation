@@ -1,6 +1,6 @@
 # SPEC — automaticStudyRoomReservation
 
-> Status: draft for approval. Source of truth once approved. Stack: Python + Playwright. Optional status page on `collegeautomation.getcuria.us`.
+> Status: draft for approval. Source of truth once approved. Stack: Python + Playwright. Optional status page on `reservation.getcuria.us`.
 
 ## 1. Problem
 
@@ -104,7 +104,7 @@ python main.py [--headed] [--dry-run] [--debug]
 
 Only if you approve after v1 automation works.
 
-- Domain: `collegeautomation.getcuria.us` (Cloudflare, `getcuria.us` zone, account `b080a52ee18c00011e5ed3b151545943`). No new domain.
+- Domain: `reservation.getcuria.us` (Cloudflare, `getcuria.us` zone, account `b080a52ee18c00011e5ed3b151545943`). No new domain.
 - Hosting: Cloudflare Pages or Workers static, same as `curia` (`wrangler.jsonc` pattern).
 - Content: last run timestamp, next scheduled date, last screenshot thumbnail, success or failure badge. No auth in v1. Data is a JSON artifact fetched from GitHub Releases or R2.
 - Build: `apps/web` with Vite + Tailwind + `motion` + `lucide-react`, reusing tokens from `curia/.claude/skills/defi-landing-design/SKILL.md` and Valance palette (`#74B93C` primary, Figtree). See `docs/DESIGN.md`.

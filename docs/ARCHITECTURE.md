@@ -9,7 +9,7 @@ GitHub Actions (cron 23:59 Bogota)
   -> checkout -> setup-python -> pip install -> playwright install chromium
   -> python main.py (env secrets)
   -> screenshots artifact + log
-  -> optional: upload status.json to R2 / Pages for collegeautomation.getcuria.us
+  -> optional: upload status.json to R2 / Pages for reservation.getcuria.us
 ```
 
 Local:
@@ -26,7 +26,7 @@ developer -> python main.py --headed --dry-run -> screenshots
 | Browser factory | `core/browser.py` | One place for headless, timeout, user-agent |
 | Config | `core/config.py` | Loads `reservationTime.json` plus env overrides. No new dep |
 | Cron | `.github/workflows/reserve.yml` | Free, scales to zero, no server. Cloudflare cron is alternative but Actions is simpler |
-| Status page (optional) | Vite + Tailwind v4 + motion, Cloudflare Pages | Reuses curia pattern. `collegeautomation.getcuria.us` via existing `getcuria.us` zone |
+| Status page (optional) | Vite + Tailwind v4 + motion, Cloudflare Pages | Reuses curia pattern. `reservation.getcuria.us` via existing `getcuria.us` zone |
 
 ## Data flow
 
@@ -74,7 +74,7 @@ Timezone note: GitHub cron is UTC only. Use `59 4 * * *` for 23:59 Bogota (UTC-5
 
 ### Cloudflare (status page only)
 
-- Reuse `curia/wrangler.jsonc` pattern. Target `collegeautomation.getcuria.us` as custom domain on Pages.
+- Reuse `curia/wrangler.jsonc` pattern. Target `reservation.getcuria.us` as custom domain on Pages.
 - Account `b080a52ee18c00011e5ed3b151545943` already owns `getcuria.us`.
 - No Worker needed unless you want an API. Static JSON is enough for v1.
 - Deploys only on `main` push, manual trigger otherwise.

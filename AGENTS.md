@@ -1,6 +1,6 @@
 # AGENTS.md — automaticStudyRoomReservation
 
-> Repo: `automaticStudyRoomReservation`. Automates daily library room booking at `https://banner9.icesi.edu.co/ic_reservas` for a quiet 10 person work room, 08:00 to 20:00 Mon to Fri, with Playwright. Optional status page on `collegeautomation.getcuria.us`.
+> Repo: `automaticStudyRoomReservation`. Automates daily library room booking at `https://banner9.icesi.edu.co/ic_reservas` for a quiet 10 person work room, 08:00 to 20:00 Mon to Fri, with Playwright. Optional status page on `reservation.getcuria.us`.
 
 ## Stack and commands
 
@@ -40,7 +40,7 @@ docs/
   SPEC.md               # functional spec (source of truth for behavior)
   ARCHITECTURE.md       # infra + deployment
   DESIGN.md             # design tokens reused from Curia / Valance
-apps/web/               # optional status page for collegeautomation.getcuria.us
+apps/web/               # optional status page for reservation.getcuria.us
 credentials.json        # NEVER committed (gitignored)
 reservationTime.json    # default schedule, committed as example only
 ```
@@ -54,7 +54,7 @@ reservationTime.json    # default schedule, committed as example only
 5. **One shared helper for dates.** All callers use `core/reservation.py:get_next_reservation_date` and `split_into_blocks`. Do not duplicate day-mapping or block-splitting logic. Weekend skip (Sat, Sun to Mon) lives in the same helper.
 6. **Every non-trivial change needs a runnable check.** One `pytest` case or an `assert` in `__main__` is enough. No test scaffolding for one-liners.
 7. **Design reuse.** Optional web UI reuses tokens from `curia/.claude/skills/defi-landing-design/SKILL.md` and Valance typography (Figtree) / palette (`#74B93C` primary). See `docs/DESIGN.md`. Do not invent a new palette.
-8. **Domain.** Production status page, if shipped, is `collegeautomation.getcuria.us` (Cloudflare, `getcuria.us` zone). No other domain without approval.
+8. **Domain.** Production status page, if shipped, is `reservation.getcuria.us` (Cloudflare, `getcuria.us` zone). No other domain without approval.
 9. **Commits.** Conventional Commits. No push to `main` without explicit user approval. Never commit `.env`, `credentials.json`, `encryption_key.key`, or screenshots with session cookies.
 10. **Verify before claiming done.** Run the command you changed and paste output, or explain why it cannot run offline (`banner9` is intranet-only).
 
