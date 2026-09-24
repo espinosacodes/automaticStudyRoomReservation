@@ -1,0 +1,13 @@
+{
+  "name": "reservation",
+  "account_id": "b080a52ee18c00011e5ed3b151545943",
+  "compatibility_date": "2026-09-24",
+  "workers_dev": true,
+  "assets": {
+    "directory": "./apps/web/dist",
+    "not_found_handling": "single-page-application"
+  },
+  "routes": [
+    { "pattern": "reservation.getcuria.us", "custom_domain": true }
+  ]
+}
