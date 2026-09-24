@@ -14,6 +14,7 @@ const ACTIONS_URL =
 
 const STATUS = {
   success: { label: 'Success', color: 'text-[#22C55E]', Icon: CheckCircle2 },
+  partial: { label: 'Partial', color: 'text-[#F59E0B]', Icon: Clock },
   'dry-run': { label: 'Dry run', color: 'text-[#F59E0B]', Icon: Clock },
   unavailable: { label: 'Unavailable', color: 'text-[#F59E0B]', Icon: Clock },
   'no-account': { label: 'No account', color: 'text-[#F59E0B]', Icon: Clock },
@@ -32,8 +33,12 @@ function formatBogota(iso) {
 }
 
 function runStatus(run) {
-  if (!run.summary || run.summary.total === 0) return 'failed'
-  if (run.summary.failed > 0) return 'failed'
+  const blocks = run.blocks ?? []
+  if (blocks.length === 0) return 'failed'
+  if (blocks.some((block) => block.status === 'failed' || block.status === 'no-account')) {
+    return 'failed'
+  }
+  if (blocks.some((block) => block.status === 'unavailable')) return 'partial'
   return run.dry_run ? 'dry-run' : 'success'
 }
 
