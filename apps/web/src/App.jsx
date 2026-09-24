@@ -16,6 +16,7 @@ const STATUS = {
   success: { label: 'Success', color: 'text-[#22C55E]', Icon: CheckCircle2 },
   'dry-run': { label: 'Dry run', color: 'text-[#F59E0B]', Icon: Clock },
   unavailable: { label: 'Unavailable', color: 'text-[#F59E0B]', Icon: Clock },
+  'no-account': { label: 'No account', color: 'text-[#F59E0B]', Icon: Clock },
   failed: { label: 'Failed', color: 'text-[#EF4444]', Icon: XCircle },
 }
 

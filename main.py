@@ -251,8 +251,13 @@ def fill_reservation(
 
 
 def submit_reservation(page: Page) -> None:
-    """Click FINALIZAR and wait for the registrada con exito confirmation."""
+    """FINALIZAR runs validation, then a confirmation modal must be accepted.
+
+    Only CONFIRMAR creates the reservation, after which the portal shows
+    "Tu reserva ha sido registrada con exito".
+    """
     page.get_by_role("button", name="FINALIZAR").click()
+    page.get_by_role("button", name="CONFIRMAR").click()
     page.wait_for_function(
         "() => /registrada con .xito/i.test(document.body.innerText)",
         timeout=DEFAULT_TIMEOUT_MS,
@@ -283,13 +288,13 @@ def build_schedule(target_date: date) -> list[tuple[str, str, str]]:
 # --------------------------------------------------------------------------
 def run_block(
     browser: Browser,
-    candidates: list[config.Account],
+    account: config.Account,
     target_date: date,
     start: str,
     end: str,
     dry_run: bool,
 ) -> dict:
-    """Run a single block, retrying login once with the next account."""
+    """Run a single block with one account."""
     label = f"{start.replace(':', '')}-{end.replace(':', '')}"
     result = {
         "start": start,
@@ -300,72 +305,112 @@ def run_block(
         "detail": "",
     }
 
-    last_error = ""
-    for candidate in candidates:
-        context = browser.new_context()
-        page = context.new_page()
-        page.set_default_timeout(DEFAULT_TIMEOUT_MS)
-        try:
-            logger.info(
-                "Block %s: logging in as %s",
-                f"{start}-{end}",
-                mask_username(candidate.username),
+    context = browser.new_context()
+    page = context.new_page()
+    page.set_default_timeout(DEFAULT_TIMEOUT_MS)
+    try:
+        logger.info(
+            "Block %s: logging in as %s",
+            f"{start}-{end}",
+            mask_username(account.username),
+        )
+        login(page, account.username, account.password)
+        open_add_reserve(page)
+        accept_requester_step(page)
+
+        room = fill_reservation(
+            page,
+            activity=config.activity_name(),
+            target=target_date,
+            start=start,
+            end=end,
+            room=config.room_name(),
+            people=config.people_count(),
+        )
+
+        page.screenshot(path=f"before_submit_{label}.png", full_page=True)
+
+        if dry_run:
+            logger.info("Block %s: dry run, not submitting", f"{start}-{end}")
+            result.update(
+                account=mask_username(account.username),
+                room=room,
+                status="dry-run",
+                detail="form filled, submit skipped",
             )
-            login(page, candidate.username, candidate.password)
-            open_add_reserve(page)
-            accept_requester_step(page)
-
-            room = fill_reservation(
-                page,
-                activity=config.activity_name(),
-                target=target_date,
-                start=start,
-                end=end,
-                room=config.room_name(),
-                people=config.people_count(),
+        else:
+            submit_reservation(page)
+            page.screenshot(path=f"after_submit_{label}.png", full_page=True)
+            result.update(
+                account=mask_username(account.username),
+                room=room,
+                status="success",
+                detail="reservation submitted",
             )
+        return result
+    except RoomUnavailable as exc:
+        logger.warning("Block %s unavailable: %s", f"{start}-{end}", exc)
+        result.update(status="unavailable", detail=str(exc))
+        return result
+    except PlaywrightTimeoutError as exc:
+        result["detail"] = f"timeout: {exc}".splitlines()[0]
+        logger.warning(
+            "Block %s failed with %s: %s",
+            f"{start}-{end}",
+            mask_username(account.username),
+            result["detail"],
+        )
+        return result
+    except Exception as exc:  # noqa: BLE001 - one block must not abort the day
+        result["detail"] = str(exc)
+        logger.warning("Block %s errored: %s", f"{start}-{end}", result["detail"])
+        return result
+    finally:
+        context.close()
 
-            page.screenshot(path=f"before_submit_{label}.png", full_page=True)
 
-            if dry_run:
-                logger.info("Block %s: dry run, not submitting", f"{start}-{end}")
-                result.update(
-                    account=mask_username(candidate.username),
-                    room=room,
-                    status="dry-run",
-                    detail="form filled, submit skipped",
-                )
-            else:
-                submit_reservation(page)
-                page.screenshot(path=f"after_submit_{label}.png", full_page=True)
-                result.update(
-                    account=mask_username(candidate.username),
-                    room=room,
-                    status="success",
-                    detail="reservation submitted",
-                )
-            return result
-        except RoomUnavailable as exc:
-            # Availability, not the account, so retrying another login is pointless.
-            logger.warning("Block %s unavailable: %s", f"{start}-{end}", exc)
-            result.update(status="unavailable", detail=str(exc))
-            return result
-        except PlaywrightTimeoutError as exc:
-            last_error = f"timeout: {exc}".splitlines()[0]
-            logger.warning(
-                "Block %s failed with %s: %s",
-                f"{start}-{end}",
-                mask_username(candidate.username),
-                last_error,
-            )
-        except Exception as exc:  # noqa: BLE001 - one block must not abort the day
-            last_error = str(exc)
-            logger.warning("Block %s errored: %s", f"{start}-{end}", last_error)
-        finally:
-            context.close()
+def run_day(
+    browser: Browser,
+    accounts: list[config.Account],
+    blocks: list[tuple[str, str]],
+    target_date: date,
+    dry_run: bool,
+) -> list[dict]:
+    """Book the blocks, one account each, never reusing a consumed account.
 
-    result["detail"] = last_error
-    return result
+    The portal limits every user to a single 2 hour block per day, so an
+    account that books cannot serve another block. An account is only consumed
+    when its block actually books, so an unavailable block returns it to the
+    pool for a later block.
+    """
+    pool = list(accounts)
+    results: list[dict] = []
+    for start, end in blocks:
+        result: dict | None = None
+        attempts = 0
+        while pool and attempts < len(accounts):
+            account = pool.pop(0)
+            attempts += 1
+            result = run_block(browser, account, target_date, start, end, dry_run)
+            if result["status"] == "unavailable":
+                pool.insert(0, account)  # nothing booked, keep the account
+                break
+            if result["status"] in {"success", "dry-run"}:
+                break
+            # Login or form failure: the account may be bad, so try the next one.
+
+        if result is None:
+            logger.warning("Block %s-%s skipped: no account left", start, end)
+            result = {
+                "start": start,
+                "end": end,
+                "account": "",
+                "room": "",
+                "status": "no-account",
+                "detail": "no account left for this block",
+            }
+        results.append(result)
+    return results
 
 
 # --------------------------------------------------------------------------
@@ -407,13 +452,14 @@ def main(argv: list[str] | None = None) -> int:
         len(accounts),
     )
 
-    results = []
     with BrowserSession(headless=not args.headed) as browser:
-        for index, (_date, start, end) in enumerate(blocks):
-            pool = [accounts[index % len(accounts)]]
-            if len(accounts) > 1:
-                pool.append(accounts[(index + 1) % len(accounts)])
-            results.append(run_block(browser, pool, target_date, start, end, args.dry_run))
+        results = run_day(
+            browser,
+            accounts,
+            [(start, end) for _date, start, end in blocks],
+            target_date,
+            args.dry_run,
+        )
 
     succeeded = sum(1 for item in results if item["status"] in {"success", "dry-run"})
     record = {

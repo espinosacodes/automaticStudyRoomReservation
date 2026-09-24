@@ -59,6 +59,12 @@ array for the rotation. CI reads `BANNER_USERS_JSON` instead.
   `Sala de estudio 204BI [Capacidad espacio: 10]`, the 10 person room. If that
   room is already booked for a block, the block is reported as `unavailable`.
 - Valid reservation hours are Monday to Friday 07:00 to 21:00.
+- Each user can hold only one 2 hour block per day, so six blocks need six
+  distinct accounts. The runner never reuses an account within a run and frees
+  one back to the pool when its block is unavailable.
+- `FINALIZAR` only validates. A confirmation modal then appears and `CONFIRMAR`
+  is what creates the reservation, after which the portal shows
+  "Tu reserva ha sido registrada con éxito".
 
 ## Checks
 

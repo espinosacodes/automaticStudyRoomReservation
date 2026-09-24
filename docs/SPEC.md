@@ -120,7 +120,7 @@ Only if you approve after v1 automation works.
 
 ## 9. Portal constraints captured
 
-- Max 2 hours per booking per user. Hence multiple accounts to cover 08:00 to 20:00 in one day.
+- Each user can book only one 2 hour block per day (confirmed live on 2026-09-24). Six blocks therefore need six distinct accounts, and the automation never reuses an account within a run. An account is only consumed when its block actually books, so an unavailable block frees it for a later block.
 - Confirmed room label: `Sala de estudio 204BI [Capacidad espacio: 10]` (code `204BI`), offered when `Número de personas` is 10.
 - The `addReserve` route is a two step Material UI wizard (requester info, then the reservation form) and must be opened by clicking the `AGREGAR RESERVA` card so the in-memory session survives. Verified against the live portal on 2026-09-24.
 - Activity options are academic Spanish labels; there is no "Study Session", so `Reunión` is the default.
