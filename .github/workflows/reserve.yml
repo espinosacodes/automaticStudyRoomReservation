@@ -31,6 +31,11 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r requirements.txt && playwright install chromium --with-deps
 
+      - name: Restore previous status
+        run: |
+          curl -fsS --max-time 30 https://reservation.getcuria.us/status.json -o status.json \
+            || echo "No previous status.json yet, starting fresh."
+
       - name: Run reservations
         id: run
         continue-on-error: true

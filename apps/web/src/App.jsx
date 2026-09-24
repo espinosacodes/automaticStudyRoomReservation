@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   Clock,
   ExternalLink,
+  Printer,
   RefreshCw,
   XCircle,
 } from 'lucide-react'
@@ -55,7 +56,7 @@ function StatusBadge({ status }) {
 
 function Nav() {
   return (
-    <header className="border-b border-hairline bg-white">
+    <header className="border-b border-hairline bg-white print:hidden">
       <Section className="flex items-center justify-between py-4">
         <span className="font-mono text-sm text-charcoal-700">reservation.getcuria.us</span>
         <span className="rounded-full bg-primary-light px-3 py-1 text-xs font-bold text-primary">
@@ -177,6 +178,87 @@ function History({ runs }) {
   )
 }
 
+function collectBookings(runs) {
+  return runs
+    .flatMap((run) =>
+      (run.blocks ?? [])
+        .filter((block) => block.status === 'success')
+        .map((block) => ({
+          date: run.target_date,
+          start: block.start,
+          end: block.end,
+          account: block.account,
+          room: block.room,
+        })),
+    )
+    .sort((a, b) => `${a.date} ${a.start}`.localeCompare(`${b.date} ${b.start}`))
+}
+
+function Bookings({ runs }) {
+  const bookings = collectBookings(runs)
+  const generatedAt = runs[0]?.run_at
+
+  return (
+    <Reveal>
+      <Card className="print:rounded-none print:border-0 print:shadow-none">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <Eyebrow>Bookings</Eyebrow>
+            <h2 className="mt-1 text-xl font-extrabold tracking-tight">
+              Reserved study room slots
+            </h2>
+            <p className="mt-1 text-sm text-charcoal-700">
+              {bookings.length} slot{bookings.length === 1 ? '' : 's'} booked
+              {generatedAt ? `, updated ${formatBogota(generatedAt)}` : ''}.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => window.print()}
+            disabled={bookings.length === 0}
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50 print:hidden"
+          >
+            <Printer className="h-4 w-4" />
+            Download PDF
+          </button>
+        </div>
+
+        {bookings.length === 0 ? (
+          <p className="mt-4 text-charcoal-700">No confirmed bookings yet.</p>
+        ) : (
+          <div className="mt-4 overflow-hidden rounded-xl border border-hairline">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-surface text-xs uppercase tracking-wide text-charcoal-700">
+                <tr>
+                  <th className="px-4 py-2 font-semibold">Date</th>
+                  <th className="px-4 py-2 font-semibold">Block</th>
+                  <th className="px-4 py-2 font-semibold">Account</th>
+                  <th className="px-4 py-2 font-semibold">Room</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bookings.map((booking) => (
+                  <tr
+                    key={`${booking.date}-${booking.start}`}
+                    className="border-t border-hairline"
+                  >
+                    <td className="px-4 py-2 font-semibold text-charcoal-900">{booking.date}</td>
+                    <td className="px-4 py-2 font-mono text-charcoal-700">
+                      {booking.start} - {booking.end}
+                    </td>
+                    <td className="px-4 py-2 font-mono text-charcoal-700">{booking.account}</td>
+                    <td className="px-4 py-2 text-charcoal-700">{booking.room}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+    </Reveal>
+  )
+}
+
 export default function App() {
   const [state, setState] = useState({ loading: true, runs: [] })
 
@@ -202,17 +284,20 @@ export default function App() {
   return (
     <div className="min-h-screen">
       <Nav />
-      <main className="space-y-6 py-10">
-        <Section>
+      <main className="space-y-6 py-10 print:py-0">
+        <Section className="print:hidden">
           <Reveal>
             <Hero run={state.runs[0]} />
           </Reveal>
         </Section>
         <Section>
+          <Bookings runs={state.runs} />
+        </Section>
+        <Section className="print:hidden">
           <History runs={state.runs} />
         </Section>
       </main>
-      <footer className="border-t border-hairline bg-white py-6">
+      <footer className="border-t border-hairline bg-white py-6 print:hidden">
         <Section className="text-center text-xs text-charcoal-700">
           Automated reservations for the ICESI library study room. Screenshots are stored as
           GitHub Actions artifacts.

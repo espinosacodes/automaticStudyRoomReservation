@@ -27,3 +27,9 @@ body {
   color: var(--color-charcoal-900);
   font-family: var(--font-sans);
 }
+
+@media print {
+  body {
+    background-color: #ffffff;
+  }
+}
