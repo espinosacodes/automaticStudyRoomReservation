@@ -44,6 +44,22 @@ python main.py --headed --dry-run
 `credentials.json` can be a single `{ "username", "password" }` object or a JSON
 array for the rotation. CI reads `BANNER_USERS_JSON` instead.
 
+## Portal notes (verified against the live site)
+
+- The `addReserve` route is a two step Material UI wizard. Step 1 is the
+  requester info (`CONTINUAR`); step 2 holds actividad, fecha, horas, número de
+  personas, espacio físico, observación (`FINALIZAR`).
+- It must be opened by clicking the `AGREGAR RESERVA` card. Navigating the URL
+  directly, or using the sidebar link, drops the in-memory session and crashes
+  the route.
+- Activities are: Capacitación, Examen, Examen final, Examen multitudinario,
+  Práctica de Laboratorio, Reunión, Seminario, Taller. There is no "Study
+  Session", so the default is `Reunión`.
+- `Número de personas` filters the room list. With `10` the portal offers
+  `Sala de estudio 204BI [Capacidad espacio: 10]`, the 10 person room. If that
+  room is already booked for a block, the block is reported as `unavailable`.
+- Valid reservation hours are Monday to Friday 07:00 to 21:00.
+
 ## Checks
 
 ```bash

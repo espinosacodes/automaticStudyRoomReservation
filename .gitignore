@@ -15,9 +15,9 @@ credentials.json
 encryption_key.key
 *.enc
 
-# Run output
-status.json
-*.png
+# Run output (repo root only, the public snapshot is tracked)
+/status.json
+/*.png
 !apps/web/public/*.png
 
 # Node / web

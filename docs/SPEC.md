@@ -34,7 +34,8 @@ WhatsApp context (Valance group, 2026-09-21 to 2026-09-23):
 - Inputs per reservation:
   - `BANNER_USERS_JSON` (GitHub Secret) as JSON array of `{ username, password }` with at least 6 entries for the 08:00 to 20:00 coverage. Fallback local is `credentials.json` or env `BANNER_USERNAME` / `BANNER_PASSWORD` for single block dry runs.
   - `reservationTime.json`: committed example array of 2 hour blocks, e.g. `[{ "day": "Monday", "startTime": "08:00", "endTime": "10:00" }, { "day": "Monday", "startTime": "10:00", "endTime": "12:00" }, ...]`. In practice the script generates the 6 blocks for the next weekday automatically, so this file is only an override.
-  - Env overrides: `RESERVATION_ROOM` (room for ~10 people, e.g. `Sala 10p` or the exact portal label once confirmed), `RESERVATION_ACTIVITY` (default `Study Session`).
+  - `RESERVATION_ROOM` optional: label or code of the 10 person room. With `RESERVATION_PEOPLE=10` the portal offers `Sala de estudio 204BI` and that is picked automatically; set this only to require a specific room. Env override `RESERVATION_PEOPLE` (default `10`) drives which rooms appear.
+  - `RESERVATION_ACTIVITY` (default `Reunión`). The portal offers Capacitación, Examen, Examen final, Examen multitudinario, Práctica de Laboratorio, Reunión, Seminario, Taller. It has no "Study Session".
 
 ## 5. Functional spec
 
@@ -119,9 +120,12 @@ Only if you approve after v1 automation works.
 
 ## 9. Portal constraints captured
 
-- Max 2 hours per booking per user. Hence 6 accounts needed to cover 08:00 to 20:00 in one day.
-- Need to confirm the exact room label for the 10 person room and whether it is the same id every day.
-- Need to confirm whether the portal allows back to back bookings by different users for the same room or enforces a gap.
+- Max 2 hours per booking per user. Hence multiple accounts to cover 08:00 to 20:00 in one day.
+- Confirmed room label: `Sala de estudio 204BI [Capacidad espacio: 10]` (code `204BI`), offered when `Número de personas` is 10.
+- The `addReserve` route is a two step Material UI wizard (requester info, then the reservation form) and must be opened by clicking the `AGREGAR RESERVA` card so the in-memory session survives. Verified against the live portal on 2026-09-24.
+- Activity options are academic Spanish labels; there is no "Study Session", so `Reunión` is the default.
+- Valid booking hours are Monday to Friday 07:00 to 21:00. The date picker only enables the currently open window.
+- When the 10 person room is already booked for a block the block is reported as `unavailable` and the rest continue.
 
 ## 10. Rollout plan
 

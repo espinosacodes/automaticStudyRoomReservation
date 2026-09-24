@@ -91,8 +91,9 @@ def room_name() -> str:
 
 
 def activity_name() -> str:
-    return os.getenv("RESERVATION_ACTIVITY", "Study Session").strip()
+    return os.getenv("RESERVATION_ACTIVITY", "Reunión").strip()
 
 
 def people_count() -> str:
-    return os.getenv("RESERVATION_PEOPLE", "1").strip()
+    # Drives which rooms the portal offers. 10 surfaces the 10 person room.
+    return os.getenv("RESERVATION_PEOPLE", "10").strip()

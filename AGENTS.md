@@ -70,9 +70,11 @@ reservationTime.json    # default schedule, committed as example only
 Create `.env` (gitignored):
 
 ```
-BANNER_USERS_JSON=[{"username":"1111542730","password":"..."}, ...6 accounts]
-RESERVATION_ROOM=Sala 10p
-RESERVATION_ACTIVITY=Study Session
+BANNER_USERS_JSON=[{"username":"1111542730","password":"..."}, ...accounts]
+RESERVATION_ACTIVITY=Reunión
+RESERVATION_PEOPLE=10
+# RESERVATION_ROOM is optional. With people=10 the portal offers the 10 person
+# room "Sala de estudio 204BI"; leave it empty to pick the only offered room.
 ```
 
 Single account fallback for local dry run:

@@ -1,8 +1,15 @@
 """Playwright entry point.
 
-Login -> AGREGAR RESERVA -> fill the form for one 2 hour block -> screenshot
--> submit (unless dry run). Loops over the six blocks for the next weekday,
-rotating Banner accounts so the 2 hour per user limit is respected.
+Flow per 2 hour block, verified against the live portal:
+
+  login -> home -> click the AGREGAR RESERVA card -> requester step
+  (CONTINUAR) -> reservation step -> fill actividad, fecha, horas, personas,
+  espacio fisico -> screenshot -> FINALIZAR (unless dry run).
+
+The portal is a Material UI wizard, so the date and time pickers are driven
+through their dialogs and the selects through their listboxes. Six blocks are
+booked with rotating Banner accounts because the portal caps a booking at two
+hours per user.
 
 Usage:
     python main.py [--headed] [--dry-run] [--debug]
@@ -15,6 +22,7 @@ import json
 import logging
 import re
 import sys
+from datetime import date
 from pathlib import Path
 
 from playwright.sync_api import Browser, Page
@@ -33,7 +41,39 @@ from core.reservation import (
 STATUS_FILE = Path("status.json")
 STATUS_HISTORY = 30
 
+# The portal has no "Study Session" option. "Reunion" (meeting) is the closest
+# fit for a quiet work session and can be overridden with RESERVATION_ACTIVITY.
+ACTIVITY_OPTIONS = [
+    "Capacitacion",
+    "Examen",
+    "Examen final",
+    "Examen multitudinario",
+    "Practica de Laboratorio",
+    "Reunion",
+    "Seminario",
+    "Taller",
+]
+
+ES_MONTHS = {
+    "enero": 1,
+    "febrero": 2,
+    "marzo": 3,
+    "abril": 4,
+    "mayo": 5,
+    "junio": 6,
+    "julio": 7,
+    "agosto": 8,
+    "septiembre": 9,
+    "octubre": 10,
+    "noviembre": 11,
+    "diciembre": 12,
+}
+
 logger = logging.getLogger("reservation")
+
+
+class RoomUnavailable(Exception):
+    """No room matching the requested size was free for the block."""
 
 
 # --------------------------------------------------------------------------
@@ -58,105 +98,163 @@ def configure_logging(debug: bool) -> None:
 # Portal interaction
 # --------------------------------------------------------------------------
 def login(page: Page, username: str, password: str) -> None:
-    """Fill the login form and wait for the session to be established."""
+    """Fill the login form and wait until the home calendar is interactive.
+
+    The login page itself contains the word "Bienvenido", so the reliable
+    success marker is the home only navigation link.
+    """
     page.goto(config.LOGIN_URL, wait_until="domcontentloaded")
     page.wait_for_selector("#username", timeout=DEFAULT_TIMEOUT_MS)
     page.fill("#username", username)
     page.fill("#password", password)
     page.click("button[type='submit']")
-    page.wait_for_function(
-        "() => document.body.innerText.includes('Bienvenido') "
-        "|| !location.pathname.endsWith('/login')",
-        timeout=DEFAULT_TIMEOUT_MS,
-    )
+    page.wait_for_selector("a[href='/ic_reservas/addReserve']", timeout=DEFAULT_TIMEOUT_MS)
 
 
 def open_add_reserve(page: Page) -> None:
-    """Click the AGREGAR RESERVA button and wait for the form page."""
-    button = page.get_by_role("button", name=re.compile(r"AGREGAR.*RESERVA", re.IGNORECASE))
-    button.first.click()
-    page.wait_for_url(re.compile(r"/addReserve"), timeout=DEFAULT_TIMEOUT_MS)
+    """Open the add reservation wizard through the AGREGAR RESERVA card.
 
-
-def _choose_option(select, wanted: str) -> str:
-    """Select the option matching ``wanted`` (case-insensitive substring).
-
-    Falls back to the first non-empty option when nothing matches. Returns
-    the chosen label for logging.
+    The card link navigates client side. Navigating the URL directly, or using
+    the sidebar link, loses the in-memory user state and crashes the route.
     """
-    options = select.locator("option")
-    entries: list[tuple[str | None, str]] = []
-    for index in range(options.count()):
-        option = options.nth(index)
-        entries.append((option.get_attribute("value"), (option.inner_text() or "").strip()))
+    card = page.get_by_role("link", name=re.compile(r"AGREGAR", re.IGNORECASE))
+    card.first.click()
+    page.wait_for_url(re.compile(r"/addReserve"), timeout=DEFAULT_TIMEOUT_MS)
+    # The requester step renders the personal information fields.
+    page.wait_for_selector("#name", timeout=DEFAULT_TIMEOUT_MS)
+
+
+def accept_requester_step(page: Page) -> None:
+    """Step 1 only shows the requester info; CONTINUAR moves to the form."""
+    page.get_by_role("button", name="CONTINUAR").click()
+    page.wait_for_selector("#activityName", timeout=DEFAULT_TIMEOUT_MS)
+
+
+def select_option(page: Page, control_id: str, wanted: str, *, exact: bool = False) -> str:
+    """Open a MUI select by id and choose an option.
+
+    Matches ``wanted`` against the option label (substring, or exact when
+    ``exact``) and falls back to the first option. Returns the chosen label.
+    """
+    page.locator(f"#{control_id}").click()
+    page.wait_for_timeout(400)
+    options = page.get_by_role("option")
+    count = options.count()
+    labels = [(options.nth(i).inner_text() or "").strip() for i in range(count)]
 
     if wanted:
-        for value, label in entries:
-            if value and wanted.lower() in label.lower():
-                select.select_option(value=value)
+        for index, label in enumerate(labels):
+            hit = label == wanted if exact else wanted.lower() in label.lower()
+            if hit:
+                options.nth(index).click()
                 return label
 
-    for value, label in entries:
-        if value:
-            select.select_option(value=value)
-            return label
+    if count:
+        options.first.click()
+        return labels[0]
     return ""
+
+
+def _open_picker_month(page: Page) -> tuple[int, int]:
+    label = page.locator("[role='dialog'] [id$='-grid-label']").first.inner_text().strip()
+    month_name, year = label.split()[-2], label.split()[-1]
+    return int(year), ES_MONTHS.get(month_name.lower(), 1)
+
+
+def pick_date(page: Page, target: date) -> None:
+    """Set the date picker to ``target``, navigating months when needed."""
+    page.locator("input[aria-label^='Choose date']").click()
+    page.wait_for_timeout(500)
+
+    for _ in range(18):
+        year, month = _open_picker_month(page)
+        if (year, month) == (target.year, target.month):
+            break
+        forward = (year, month) < (target.year, target.month)
+        button = page.get_by_role("button", name="Next month" if forward else "Previous month")
+        if button.is_disabled():
+            raise PlaywrightTimeoutError(f"target month {target} is outside the picker window")
+        button.click()
+        page.wait_for_timeout(300)
+
+    cell = page.get_by_role("gridcell", name=str(target.day), exact=True)
+    if cell.is_disabled():
+        raise PlaywrightTimeoutError(f"date {target} is not selectable in the portal")
+    cell.click()
+    page.wait_for_timeout(200)
+    page.get_by_role("button", name="OK", exact=True).click()
+    page.wait_for_timeout(400)
+
+
+def _to_12h(hhmm: str) -> tuple[int, int, str]:
+    hour, minute = (int(part) for part in hhmm.split(":"))
+    meridiem = "AM" if hour < 12 else "PM"
+    return (hour % 12 or 12), minute, meridiem
+
+
+def pick_time(page: Page, index: int, hhmm: str) -> None:
+    """Set the start (index 0) or end (index 1) time via the clock dialog.
+
+    MUI's clock numbers sit under an overlay that swallows synthetic clicks, so
+    the options are clicked with ``force=True``, which still reaches the clock
+    face and selects the hour by position.
+    """
+    hour12, minute, meridiem = _to_12h(hhmm)
+    page.locator("input[aria-label^='Choose time']").nth(index).click()
+    page.wait_for_timeout(500)
+    # Switch AM/PM first: the clock disables numbers outside the active
+    # meridiem, so PM hours cannot be picked while AM is selected.
+    page.get_by_role("button", name=meridiem, exact=True).click(force=True)
+    page.wait_for_timeout(300)
+    page.locator(f"[role=option][aria-label='{hour12} hours']").click(force=True)
+    page.wait_for_timeout(400)
+    page.locator(f"[role=option][aria-label='{minute:02d} minutes']").click(force=True)
+    page.wait_for_timeout(300)
+    page.get_by_role("button", name="OK", exact=True).click()
+    page.wait_for_timeout(400)
 
 
 def fill_reservation(
     page: Page,
     *,
     activity: str,
-    target_date: str,
+    target: date,
     start: str,
     end: str,
     room: str,
     people: str,
 ) -> str:
-    """Fill the add reservation form. Returns the selected room label."""
-    activity_input = page.locator("input[placeholder*='ctividad']").first
-    activity_input.fill(activity)
+    """Fill the reservation step. Returns the selected room label."""
+    selected_activity = select_option(page, "activityName", activity)
+    logger.info("Activity: %s", selected_activity)
 
-    page.locator("input[type='date']").first.fill(target_date)
-    times = page.locator("input[type='time']")
-    times.nth(0).fill(start)
-    times.nth(1).fill(end)
+    pick_date(page, target)
+    pick_time(page, 0, start)
+    pick_time(page, 1, end)
 
-    building = page.locator("select[name*='edificio' i]").first
-    if building.count():
-        label = _choose_option(building, "")
-        logger.debug("Selected building: %s", label)
+    # People count drives which rooms are offered, so it must be set before the
+    # room list is fetched.
+    selected_people = select_option(page, "peopleQuantity", people, exact=True)
+    logger.info("People: %s", selected_people)
+    page.wait_for_timeout(1500)
 
-    # The space list loads asynchronously after the building is picked.
-    page.wait_for_timeout(2000)
+    selected_room = select_option(page, "place", room)
+    logger.info("Room: %s", selected_room or "(first available)")
+    if not selected_room:
+        raise RoomUnavailable(f"no {people} person room free for {start}-{end}")
 
-    people_input = page.locator("input[type='number']").first
-    if people_input.count():
-        people_input.fill(people)
-
-    room_select = page.locator(
-        "select[name*='espacio' i], select[name*='sala' i], select[name*='room' i]"
-    ).first
-    chosen_room = ""
-    if room_select.count():
-        chosen_room = _choose_option(room_select, room)
-        logger.info("Selected room: %s", chosen_room or "(first available)")
-
-    observation = page.locator("textarea").first
+    observation = page.locator("#details")
     if observation.count():
         observation.fill("Automated reservation")
 
-    return chosen_room
+    return selected_room
 
 
 def submit_reservation(page: Page) -> None:
-    """Click the submit button and wait for the confirmation marker."""
-    button = page.get_by_role(
-        "button", name=re.compile(r"Continuar|Solicitar|Reservar", re.IGNORECASE)
-    )
-    button.first.click()
+    """Click FINALIZAR and wait for the registrada con exito confirmation."""
+    page.get_by_role("button", name="FINALIZAR").click()
     page.wait_for_function(
-        "() => /exitosa|éxito|correctamente/i.test(document.body.innerText)",
+        "() => /registrada con .xito/i.test(document.body.innerText)",
         timeout=DEFAULT_TIMEOUT_MS,
     )
 
@@ -164,12 +262,8 @@ def submit_reservation(page: Page) -> None:
 # --------------------------------------------------------------------------
 # Scheduling
 # --------------------------------------------------------------------------
-def build_schedule(target_date) -> list[tuple[str, str, str]]:
-    """Return the block list, honouring the optional reservationTime.json override.
-
-    The override, when present, is filtered to the target weekday. If it
-    yields nothing the auto 08:00 to 20:00 split is used.
-    """
+def build_schedule(target_date: date) -> list[tuple[str, str, str]]:
+    """Return the block list, honouring the optional reservationTime.json override."""
     override = config.load_schedule_override()
     if override:
         day_name = DAY_NAMES[target_date.weekday()]
@@ -190,8 +284,7 @@ def build_schedule(target_date) -> list[tuple[str, str, str]]:
 def run_block(
     browser: Browser,
     candidates: list[config.Account],
-    index: int,
-    target_date: str,
+    target_date: date,
     start: str,
     end: str,
     dry_run: bool,
@@ -211,6 +304,7 @@ def run_block(
     for candidate in candidates:
         context = browser.new_context()
         page = context.new_page()
+        page.set_default_timeout(DEFAULT_TIMEOUT_MS)
         try:
             logger.info(
                 "Block %s: logging in as %s",
@@ -219,11 +313,12 @@ def run_block(
             )
             login(page, candidate.username, candidate.password)
             open_add_reserve(page)
+            accept_requester_step(page)
 
             room = fill_reservation(
                 page,
                 activity=config.activity_name(),
-                target_date=target_date,
+                target=target_date,
                 start=start,
                 end=end,
                 room=config.room_name(),
@@ -249,6 +344,11 @@ def run_block(
                     status="success",
                     detail="reservation submitted",
                 )
+            return result
+        except RoomUnavailable as exc:
+            # Availability, not the account, so retrying another login is pointless.
+            logger.warning("Block %s unavailable: %s", f"{start}-{end}", exc)
+            result.update(status="unavailable", detail=str(exc))
             return result
         except PlaywrightTimeoutError as exc:
             last_error = f"timeout: {exc}".splitlines()[0]
@@ -313,9 +413,7 @@ def main(argv: list[str] | None = None) -> int:
             pool = [accounts[index % len(accounts)]]
             if len(accounts) > 1:
                 pool.append(accounts[(index + 1) % len(accounts)])
-            results.append(
-                run_block(browser, pool, index, target_date.isoformat(), start, end, args.dry_run)
-            )
+            results.append(run_block(browser, pool, target_date, start, end, args.dry_run))
 
     succeeded = sum(1 for item in results if item["status"] in {"success", "dry-run"})
     record = {
