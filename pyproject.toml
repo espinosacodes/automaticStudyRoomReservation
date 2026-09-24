@@ -1,0 +1,14 @@
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [".venv", "node_modules", "apps/web/dist"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "DTZ"]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests use naive datetimes on purpose to document the day mapping.
+"tests/*" = ["DTZ001"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

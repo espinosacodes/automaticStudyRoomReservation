@@ -1,0 +1,84 @@
+name: reserve
+
+on:
+  schedule:
+    # 23:59 America/Bogota (UTC-5, no DST) when the next day's slots open.
+    - cron: "59 4 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Fill the form but do not submit
+        type: boolean
+        default: false
+
+concurrency:
+  group: reserve
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  reserve:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt && playwright install chromium --with-deps
+
+      - name: Run reservations
+        id: run
+        continue-on-error: true
+        env:
+          BANNER_USERS_JSON: ${{ secrets.BANNER_USERS_JSON }}
+          BANNER_USERNAME: ${{ secrets.BANNER_USERNAME }}
+          BANNER_PASSWORD: ${{ secrets.BANNER_PASSWORD }}
+          RESERVATION_ROOM: ${{ vars.RESERVATION_ROOM }}
+          RESERVATION_ACTIVITY: ${{ vars.RESERVATION_ACTIVITY }}
+        run: python main.py ${{ inputs.dry_run && '--dry-run' || '' }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: |
+            *.png
+            status.json
+          if-no-files-found: ignore
+
+      - name: Deploy status page
+        if: always()
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "CLOUDFLARE_API_TOKEN is not set, skipping deploy."
+            exit 0
+          fi
+          if [ -f status.json ]; then
+            cp status.json apps/web/public/status.json
+          fi
+          pnpm install --frozen-lockfile
+          pnpm --filter web build
+          pnpm exec wrangler deploy
+
+      - name: Fail when a block failed
+        if: steps.run.outcome == 'failure'
+        run: |
+          echo "At least one reservation block failed, see the log above."
+          exit 1

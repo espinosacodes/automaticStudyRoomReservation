@@ -1,2 +1,32 @@
 WhatsApp Chat - Valance
 WhatsApp Chat - Valance.zip
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.log
+
+# Secrets and local state (never commit)
+.env
+credentials.json
+encryption_key.key
+*.enc
+
+# Run output
+status.json
+*.png
+!apps/web/public/*.png
+
+# Node / web
+node_modules/
+apps/web/dist/
+.wrangler/
+.pnpm-store/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
