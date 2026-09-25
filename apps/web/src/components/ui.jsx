@@ -1,35 +1,57 @@
-import { motion } from 'motion/react'
+/**
+ * Small presentational primitives shared by the page sections.
+ * Everything here is React, no separate markup layer.
+ */
+import { Reveal } from './Reveal.jsx'
 
-export function Card({ children, className = '' }) {
+export function Section({ id, eyebrow, title, description, action, children }) {
   return (
-    <div
-      className={`rounded-2xl border border-hairline bg-white p-6 shadow-sm ${className}`}
-    >
+    <section className="section" id={id}>
+      <div className="section-head">
+        <div>
+          <p className="eyebrow">{eyebrow}</p>
+          <h2>{title}</h2>
+          {description && <p>{description}</p>}
+        </div>
+        {action}
+      </div>
       {children}
+    </section>
+  )
+}
+
+export function StatCard({ label, value, hint, mono = false }) {
+  return (
+    <dl className="stat">
+      <dt>{label}</dt>
+      <dd className={mono ? 'mono' : undefined}>{value}</dd>
+      {hint && <small>{hint}</small>}
+    </dl>
+  )
+}
+
+export function StatusPill({ status }) {
+  const map = {
+    success: ['ok', 'Booked'],
+    'dry-run': ['warn', 'Dry run'],
+    partial: ['warn', 'Partial'],
+    unavailable: ['busy', 'Unavailable'],
+    'no-account': ['busy', 'No account'],
+    failed: ['bad', 'Failed'],
+  }
+  const [tone, label] = map[status] ?? map.failed
+  return <span className={`pill ${tone}`}>{label}</span>
+}
+
+export function Field({ label, value, mono = false }) {
+  return (
+    <div>
+      <p className="eyebrow">{label}</p>
+      <p className={mono ? 'mono' : undefined} style={{ marginTop: 6 }}>
+        {value}
+      </p>
     </div>
   )
 }
 
-export function Section({ children, className = '' }) {
-  return <section className={`mx-auto w-full max-w-3xl px-5 ${className}`}>{children}</section>
-}
-
-export function Eyebrow({ children }) {
-  return (
-    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{children}</p>
-  )
-}
-
-export function Reveal({ children, delay = 0, className = '' }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.3 }}
-      transition={{ duration: 0.4, ease: 'easeOut', delay }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  )
-}
+export { Reveal }

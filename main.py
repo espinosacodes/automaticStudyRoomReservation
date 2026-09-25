@@ -214,6 +214,44 @@ def pick_time(page: Page, index: int, hhmm: str) -> None:
     page.wait_for_timeout(400)
 
 
+def _room_capacity(label: str) -> int | None:
+    """Read the capacity out of a room label like 'Sala ... [Capacidad espacio: 10]'."""
+    match = re.search(r"Capacidad\s+espacio:\s*(\d+)", label, re.IGNORECASE)
+    return int(match.group(1)) if match else None
+
+
+def rank_rooms(labels: list[str], preferred: str, people: str) -> list[str]:
+    """Order room options best first.
+
+    A label containing ``preferred`` wins whenever it is offered. Otherwise the
+    largest room available comes first, because the real goal is to hold a study
+    room for the whole day, so losing the preferred room must never lose the
+    block. ``people`` is only used to keep the sort deterministic when two rooms
+    share a capacity.
+    """
+    wanted = int(people) if str(people).isdigit() else 0
+
+    def key(label: str):
+        is_preferred = bool(preferred) and preferred.lower() in label.lower()
+        capacity = _room_capacity(label) or 0
+        # Preferred first, then largest capacity, then closest to the request.
+        return (not is_preferred, -capacity, abs(capacity - wanted))
+
+    return sorted(labels, key=key)
+
+
+def list_room_options(page: Page) -> list[str]:
+    """Return the room labels currently offered by the Espacio fisico select."""
+    page.locator("#place").click()
+    page.wait_for_timeout(600)
+    options = page.get_by_role("option")
+    labels = [(options.nth(i).inner_text() or "").strip() for i in range(options.count())]
+    if labels:
+        page.keyboard.press("Escape")
+        page.wait_for_timeout(200)
+    return [label for label in labels if label]
+
+
 def fill_reservation(
     page: Page,
     *,
@@ -224,7 +262,12 @@ def fill_reservation(
     room: str,
     people: str,
 ) -> str:
-    """Fill the reservation step. Returns the selected room label."""
+    """Fill the reservation step. Returns the selected room label.
+
+    Prefers ``room``; when it is not offered, picks the best available room by
+    capacity so a taken 10 person room does not lose the block. Raises
+    ``RoomUnavailable`` only when the portal offers no room at all.
+    """
     selected_activity = select_option(page, "activityName", activity)
     logger.info("Activity: %s", selected_activity)
 
@@ -238,10 +281,22 @@ def fill_reservation(
     logger.info("People: %s", selected_people)
     page.wait_for_timeout(1500)
 
-    selected_room = select_option(page, "place", room)
-    logger.info("Room: %s", selected_room or "(first available)")
+    available = list_room_options(page)
+    if not available:
+        raise RoomUnavailable(f"no room free for {start}-{end}")
+
+    ranked = rank_rooms(available, room, people)
+    wanted = ranked[0]
+    selected_room = select_option(page, "place", wanted)
     if not selected_room:
-        raise RoomUnavailable(f"no {people} person room free for {start}-{end}")
+        # The label changed between listing and selecting, fall back to values.
+        selected_room = available[0]
+        page.locator("#place").click()
+        page.wait_for_timeout(400)
+        page.get_by_role("option").first.click()
+    if selected_room != wanted:
+        logger.info("Preferred room not offered, using %s", selected_room)
+    logger.info("Room: %s", selected_room)
 
     observation = page.locator("#details")
     if observation.count():
@@ -262,6 +317,39 @@ def submit_reservation(page: Page) -> None:
         "() => /registrada con .xito/i.test(document.body.innerText)",
         timeout=DEFAULT_TIMEOUT_MS,
     )
+
+
+def capture_confirmation(page: Page, label: str) -> str:
+    """FINALIZAR then CONFIRMAR, saving the confirmation PDF the portal downloads.
+
+    The click on CONFIRMAR triggers a JasperReports download named
+    ConstanciaDeReservaDeEspacio.pdf. Returns the saved path, or an empty string
+    when the portal did not send one (the booking still succeeded).
+    """
+    page.get_by_role("button", name="FINALIZAR").click()
+    page.wait_for_timeout(1500)
+
+    pdf_dir = Path("bookings")
+    pdf_dir.mkdir(exist_ok=True)
+    path = pdf_dir / f"confirmation_{label}.pdf"
+
+    try:
+        with page.expect_download(timeout=DEFAULT_TIMEOUT_MS) as download_info:
+            page.get_by_role("button", name="CONFIRMAR").click()
+        download = download_info.value
+        download.save_as(path)
+        logger.info("Saved confirmation PDF: %s", path)
+    except PlaywrightTimeoutError:
+        # No download: accept the modal so the flow still completes, then verify.
+        logger.warning("No confirmation PDF was offered for %s", label)
+        page.get_by_role("button", name="CONFIRMAR").click()
+        path = Path("")
+
+    page.wait_for_function(
+        "() => /registrada con .xito/i.test(document.body.innerText)",
+        timeout=DEFAULT_TIMEOUT_MS,
+    )
+    return str(path) if path else ""
 
 
 # --------------------------------------------------------------------------
@@ -339,13 +427,14 @@ def run_block(
                 detail="form filled, submit skipped",
             )
         else:
-            submit_reservation(page)
+            pdf_path = capture_confirmation(page, label)
             page.screenshot(path=f"after_submit_{label}.png", full_page=True)
             result.update(
                 account=mask_username(account.username),
                 room=room,
                 status="success",
                 detail="reservation submitted",
+                pdf=pdf_path,
             )
         return result
     except RoomUnavailable as exc:

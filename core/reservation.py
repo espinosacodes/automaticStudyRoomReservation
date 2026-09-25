@@ -25,9 +25,16 @@ DAY_NAMES = [
     "Sunday",
 ]
 
+# Product window. The library study room runs 08:00 to 20:00, split into six
+# back to back 2 hour blocks. The portal also exposes its own fixed franjas that
+# start at 07:00 (07:00-09:00, 09:00-11:00, ...), but the time picker accepts
+# arbitrary start and end times, so 08:00 to 20:00 is bookable and is what we
+# reserve. Saturdays are bookable per the portal (07:00 to 17:00) but the team
+# skips weekends on purpose.
 DEFAULT_START = "08:00"
 DEFAULT_END = "20:00"
 DEFAULT_BLOCK_HOURS = 2
+SATURDAY_END = "17:00"
 
 
 def _to_minutes(value: str) -> int:
@@ -45,21 +52,24 @@ def now_bogota() -> datetime:
 
 
 def get_next_reservation_date(now: datetime | None = None) -> date:
-    """Return the next bookable weekday.
+    """Return the day the automation should book.
 
-    The portal opens the next calendar day around 23:59, so the target is
-    tomorrow. When tomorrow is Saturday or Sunday it is pushed forward to
-    Monday, because the team never books weekends. Naive input is treated as
-    Bogota time and aware input is converted to it.
+    Measured against the live portal: a target 2 days out is selectable, but a
+    Monday 3 days out was refused by the date picker even though the portal's
+    own rule text mentions a maximum of 3 days. The safe target is therefore
+    tomorrow, which is always inside the window. When tomorrow is Saturday or
+    Sunday it rolls forward to Monday, because the team skips weekends even
+    though the portal does allow Saturday bookings from 07:00 to 17:00.
+
+    Naive input is treated as Bogota time and aware input is converted to it.
     """
     moment = now or now_bogota()
     if moment.tzinfo is None:
         moment = moment.replace(tzinfo=BOGOTA_TZ)
     moment = moment.astimezone(BOGOTA_TZ)
+
     target = moment.date() + timedelta(days=1)
-    if target.weekday() == 5:  # Saturday -> Monday
-        target += timedelta(days=2)
-    elif target.weekday() == 6:  # Sunday -> Monday
+    while target.weekday() >= 5:  # Saturday or Sunday -> Monday
         target += timedelta(days=1)
     return target
 

@@ -14,6 +14,9 @@ from pathlib import Path
 LOGIN_URL = "https://banner9.icesi.edu.co/ic_reservas/login"
 HOME_URL = "https://banner9.icesi.edu.co/ic_reservas/"
 ADD_RESERVE_URL = "https://banner9.icesi.edu.co/ic_reservas/addReserve"
+API_BASE = "https://banner9.icesi.edu.co/ic_reservas_api"
+# The library building. Drives the Espacio fisico room list.
+BUILDING_CODE = "BI"
 
 DEFAULT_SCHEDULE_FILE = Path("reservationTime.json")
 LOCAL_CREDENTIALS_FILE = Path("credentials.json")
