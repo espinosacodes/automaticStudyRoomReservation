@@ -5,7 +5,7 @@
  *
  * Data flow, left to right:
  *   scheduler -> automation -> status.json -> Worker -> visitor
- * with Database (D1) for auth and Object storage (R2) for the confirmation PDFs.
+ * with private GitHub run artifacts for official confirmation PDFs.
  */
 
 const GROUP_LABEL_Y = 24
@@ -62,7 +62,7 @@ function Group({ x, w, label }) {
   )
 }
 
-export function ArchitectureDiagram({ Github, Terminal, FileJson, Cloud, Database, Archive, Monitor }) {
+export function ArchitectureDiagram({ Github, Terminal, FileJson, Cloud, Archive, Monitor }) {
   return (
     <div className="diagram">
       <svg viewBox="0 0 1020 200" role="img" aria-label="How the reservation system runs">
@@ -80,18 +80,18 @@ export function ArchitectureDiagram({ Github, Terminal, FileJson, Cloud, Databas
         <Node x={22} title="Cron" sub="23:59 Bogota" Icon={Github} />
         <Node x={222} title="Playwright run" sub="6 blocks, 6 accounts" Icon={Terminal} />
         <Node x={374} title="Portal" sub="banner9.icesi.edu.co" Icon={Monitor} />
-        <Node x={542} title="status.json" sub="bookings + pdfs" Icon={FileJson} />
-        <Node x={762} title="Worker" sub="static + API" accent Icon={Cloud} />
+        <Node x={542} title="status.json" sub="booking outcomes" Icon={FileJson} />
+        <Node x={762} title="Worker" sub="static dashboard" accent Icon={Cloud} />
 
-        <Node x={542} y={132} w={88} title="D1" sub="auth" Icon={Database} />
-        <Node x={644} y={132} w={92} title="R2" sub="pdfs" Icon={Archive} />
+
+        <Node x={542} y={140} w={180} title="Run artifacts" sub="Official PDFs, private" Icon={Archive} />
 
         <Edge x1={154} y1={82} x2={222} y2={82} />
         <Edge x1={354} y1={82} x2={374} y2={82} />
         <Edge x1={506} y1={82} x2={542} y2={82} />
         <Edge x1={674} y1={82} x2={762} y2={82} />
-        <Edge x1={590} y1={110} x2={586} y2={132} />
-        <Edge x1={690} y1={82} x2={690} y2={132} dashed />
+
+        <Edge x1={506} y1={82} x2={542} y2={168} dashed />
 
         <text className="d-note" x={762} y={186}>
           reservation.getcuria.us

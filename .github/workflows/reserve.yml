@@ -59,9 +59,10 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: screenshots
+          name: reservation-evidence
           path: |
             *.png
+            bookings/*.pdf
             status.json
           if-no-files-found: ignore
 

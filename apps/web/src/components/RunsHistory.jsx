@@ -6,6 +6,7 @@ import { StatusPill } from './ui.jsx'
 
 export function runStatus(run) {
   const blocks = run.blocks ?? []
+  if (blocks.some((block) => block.status === 'unconfirmed')) return 'unconfirmed'
   if (blocks.length === 0) return 'failed'
   if (blocks.some((block) => block.status === 'failed' || block.status === 'no-account')) {
     return 'failed'

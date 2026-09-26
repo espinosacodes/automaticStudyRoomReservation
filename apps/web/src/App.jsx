@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Archive, Cloud, Database, FileJson, Github, Monitor, Terminal } from 'lucide-react'
+import { Archive, Cloud, FileJson, Github, Monitor, Terminal } from 'lucide-react'
 
 import { ArchitectureDiagram } from './components/ArchitectureDiagram.jsx'
 import { BookingsTable, collectBookings } from './components/BookingsTable.jsx'
@@ -23,15 +23,22 @@ function formatBogota(value) {
 }
 
 export default function App() {
-  const [state, setState] = useState({ loading: true, runs: [] })
+  const [state, setState] = useState({ loading: true, runs: [], error: false })
+  const [selectedDate, setSelectedDate] = useState('')
 
   useEffect(() => {
     let active = true
     fetch('/status.json', { cache: 'no-store' })
-      .then((response) => (response.ok ? response.json() : { runs: [] }))
-      .catch(() => ({ runs: [] }))
+      .then((response) => {
+        if (!response.ok) throw new Error('Status unavailable')
+        return response.json()
+      })
       .then((data) => {
-        if (active) setState({ loading: false, runs: data.runs ?? [] })
+        if (!Array.isArray(data.runs)) throw new Error('Invalid status')
+        if (active) setState({ loading: false, runs: data.runs, error: false })
+      })
+      .catch(() => {
+        if (active) setState({ loading: false, runs: [], error: true })
       })
     return () => {
       active = false
@@ -50,27 +57,40 @@ export default function App() {
   const runs = state.runs
   const latest = runs[0]
   const bookings = collectBookings(runs)
-  const bookedSlots = bookings.length
+  const dates = [...new Set(runs.map((run) => run.target_date))].sort().reverse()
+  const activeDate = selectedDate || latest?.target_date
+  const dailyBookings = bookings.filter((booking) => booking.date === activeDate)
+  const bookedSlots = new Set(dailyBookings.map((booking) => booking.start)).size
   const capacity = 6
-  const coverage = latest ? Math.round((bookedSlots / capacity) * 100) : 0
+  const coverage = latest ? Math.min(100, Math.round((bookedSlots / capacity) * 100)) : 0
 
   return (
     <>
       <Topbar />
       <main className="page">
+        {state.error && <div className="notice" role="alert">Status could not be loaded. <button className="button ghost" onClick={() => window.location.reload()}>Retry</button></div>}
         <section className="hero">
           <p className="eyebrow">Reservation automation</p>
           <h1>
-            A quiet room, booked <em>every weekday</em>.
+            Your study room, <em>at a glance</em>.
           </h1>
           <p>
-            The ICESI library study room is reserved the night before, 08:00 to 20:00, split into
-            six two hour blocks so no account exceeds the portal's per user limit. When the ten
-            person room is gone, the largest available room is taken instead.
+            Track confirmed bookings, daily coverage, and official reservation receipts.
+            The schedule targets six two hour blocks, Monday to Friday, 08:00 to 20:00 Bogota.
           </p>
         </section>
 
-        <section className="section" style={{ marginTop: 32 }}>
+        <nav className="dashboard-nav" aria-label="Dashboard sections">
+          <a href="#bookings">Reservations</a><a href="#calendar">Week</a><a href="#runs">Run history</a><a href="#architecture">How it works</a>
+        </nav>
+        <div className="date-toolbar">
+          <label htmlFor="booking-date">Reservation date</label>
+          <select id="booking-date" value={activeDate || ''} onChange={(event) => setSelectedDate(event.target.value)} disabled={!dates.length}>
+            {!dates.length && <option value="">No runs yet</option>}
+            {dates.map((date) => <option key={date} value={date}>{date}</option>)}
+          </select>
+        </div>
+        <section className="section" style={{ marginTop: 24 }}>
           <div className="card-grid">
             <StatCard
               label="Last run"
@@ -78,9 +98,9 @@ export default function App() {
               hint={latest ? `for ${latest.target_date}` : 'waiting for the first run'}
             />
             <StatCard
-              label="Rooms held"
+              label="Blocks confirmed"
               value={`${bookedSlots}`}
-              hint={`of ${capacity} weekday blocks`}
+              hint={`of ${capacity} blocks on ${activeDate || 'the selected date'}`}
             />
             <StatCard label="Coverage" value={`${coverage}%`} hint="08:00 to 20:00 window" />
             <StatCard
@@ -99,9 +119,9 @@ export default function App() {
           id="bookings"
           eyebrow="Bookings"
           title="Reserved slots and confirmations"
-          description="Every confirmed reservation, including the confirmation PDF the portal generates when the booking is created."
+          description="Every confirmed reservation, with official PDFs available in private run artifacts when captured."
         >
-          <BookingsTable bookings={bookings} generatedAt={latest?.run_at} formatStamp={formatBogota} />
+          <BookingsTable bookings={dailyBookings} generatedAt={latest?.run_at} formatStamp={formatBogota} />
         </Section>
 
         <Section
@@ -110,7 +130,7 @@ export default function App() {
           title="The week at a glance"
           description="Booked blocks per weekday and hour, so gaps in the day are obvious."
         >
-          <WeekCalendar bookings={bookings} />
+          <WeekCalendar bookings={bookings} targetDate={activeDate} />
         </Section>
 
         <Section
@@ -124,7 +144,6 @@ export default function App() {
             Terminal={Terminal}
             FileJson={FileJson}
             Cloud={Cloud}
-            Database={Database}
             Archive={Archive}
             Monitor={Monitor}
           />

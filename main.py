@@ -20,10 +20,12 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import re
 import sys
 from datetime import date
 from pathlib import Path
+from uuid import uuid4
 
 from playwright.sync_api import Browser, Page
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
@@ -320,36 +322,36 @@ def submit_reservation(page: Page) -> None:
 
 
 def capture_confirmation(page: Page, label: str) -> str:
-    """FINALIZAR then CONFIRMAR, saving the confirmation PDF the portal downloads.
-
-    The click on CONFIRMAR triggers a JasperReports download named
-    ConstanciaDeReservaDeEspacio.pdf. Returns the saved path, or an empty string
-    when the portal did not send one (the booking still succeeded).
-    """
+    """Submit once. A missing PDF must never cause another reservation."""
     page.get_by_role("button", name="FINALIZAR").click()
-    page.wait_for_timeout(1500)
-
-    pdf_dir = Path("bookings")
-    pdf_dir.mkdir(exist_ok=True)
-    path = pdf_dir / f"confirmation_{label}.pdf"
-
+    download = None
     try:
         with page.expect_download(timeout=DEFAULT_TIMEOUT_MS) as download_info:
-            page.get_by_role("button", name="CONFIRMAR").click()
+            page.get_by_role("button", name="CONFIRMAR", exact=True).click()
         download = download_info.value
-        download.save_as(path)
-        logger.info("Saved confirmation PDF: %s", path)
     except PlaywrightTimeoutError:
-        # No download: accept the modal so the flow still completes, then verify.
-        logger.warning("No confirmation PDF was offered for %s", label)
-        page.get_by_role("button", name="CONFIRMAR").click()
-        path = Path("")
+        logger.warning("Confirmation download was not received for %s", label)
 
+    # Booking confirmation and PDF delivery are independent outcomes.
     page.wait_for_function(
         "() => /registrada con .xito/i.test(document.body.innerText)",
         timeout=DEFAULT_TIMEOUT_MS,
     )
-    return str(path) if path else ""
+    if download is None:
+        return ""
+    path = Path("bookings") / f"confirmation_{label}_{uuid4().hex}.pdf"
+    try:
+        path.parent.mkdir(exist_ok=True)
+        download.save_as(path)
+        with path.open("rb") as saved:
+            if saved.read(5) != b"%PDF-":
+                raise ValueError("Download is not a PDF")
+    except Exception:  # A delivery failure does not undo a confirmed booking.
+        path.unlink(missing_ok=True)
+        logger.warning("Booking confirmed, but its PDF could not be saved")
+        return ""
+    logger.info("Saved official confirmation: %s", path.name)
+    return str(path)
 
 
 # --------------------------------------------------------------------------
@@ -393,7 +395,8 @@ def run_block(
         "detail": "",
     }
 
-    context = browser.new_context()
+    submission_started = False
+    context = browser.new_context(accept_downloads=True)
     page = context.new_page()
     page.set_default_timeout(DEFAULT_TIMEOUT_MS)
     try:
@@ -427,14 +430,20 @@ def run_block(
                 detail="form filled, submit skipped",
             )
         else:
-            pdf_path = capture_confirmation(page, label)
-            page.screenshot(path=f"after_submit_{label}.png", full_page=True)
+            submission_started = True
+            pdf_path = capture_confirmation(page, f"{target_date.isoformat()}_{label}")
             result.update(
                 account=mask_username(account.username),
                 room=room,
                 status="success",
                 detail="reservation submitted",
                 pdf=pdf_path,
+                pdf_status="captured" if pdf_path else "missing",
+                confirmation_run_url=(
+                    f"https://github.com/espinosacodes/automaticStudyRoomReservation/actions/runs/{os.environ['GITHUB_RUN_ID']}"
+                    if pdf_path and os.getenv("GITHUB_RUN_ID", "").isdigit()
+                    else ""
+                ),
             )
         return result
     except RoomUnavailable as exc:
@@ -455,6 +464,11 @@ def run_block(
         logger.warning("Block %s errored: %s", f"{start}-{end}", result["detail"])
         return result
     finally:
+        if submission_started and result["status"] != "success":
+            result.update(
+                status="unconfirmed",
+                detail="Submission needs portal verification. Automatic retry stopped.",
+            )
         context.close()
 
 
@@ -484,7 +498,7 @@ def run_day(
             if result["status"] == "unavailable":
                 pool.insert(0, account)  # nothing booked, keep the account
                 break
-            if result["status"] in {"success", "dry-run"}:
+            if result["status"] in {"success", "dry-run", "unconfirmed"}:
                 break
             # Login or form failure: the account may be bad, so try the next one.
 
@@ -564,7 +578,7 @@ def main(argv: list[str] | None = None) -> int:
     }
     write_status(record)
 
-    failed = [item for item in results if item["status"] == "failed"]
+    failed = [item for item in results if item["status"] in {"failed", "unconfirmed", "no-account"}]
     if failed:
         logger.error("%d block(s) failed", len(failed))
         return 1

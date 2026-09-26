@@ -8,7 +8,6 @@
  * Here every day column owns its own cells, so a slot can only ever render in
  * the column it was placed in.
  */
-import { Fragment } from 'react'
 
 const DAY_LABELS = ['MON', 'TUE', 'WED', 'THU', 'FRI']
 const HOURS = ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00']
@@ -27,22 +26,21 @@ function isoDate(date) {
  * The week holding the latest booking. Without pinning to one week, slots from
  * different dates would collapse into the same columns.
  */
-function weekOf(bookings) {
+function weekOf(bookings, targetDate) {
   const latest = bookings.reduce(
     (max, booking) => (booking.date > max ? booking.date : max),
     bookings[0]?.date ?? '',
   )
-  const date = parseDate(latest)
+  const date = parseDate(targetDate || latest)
   if (!date) return null
   const day = date.getUTCDay() // 0 Sunday to 6 Saturday
-  if (day === 0 || day === 6) return null
   const monday = new Date(date.getTime())
-  monday.setUTCDate(monday.getUTCDate() - (day - 1))
+  monday.setUTCDate(monday.getUTCDate() - ((day + 6) % 7))
   return monday
 }
 
-export function WeekCalendar({ bookings }) {
-  if (bookings.length === 0) {
+export function WeekCalendar({ bookings, targetDate }) {
+  if (bookings.length === 0 && !targetDate) {
     return (
       <div className="calendar">
         <div className="empty">No bookings yet. The next scheduled run will fill this in.</div>
@@ -50,7 +48,7 @@ export function WeekCalendar({ bookings }) {
     )
   }
 
-  const monday = weekOf(bookings)
+  const monday = weekOf(bookings, targetDate)
   const days = monday
     ? DAY_LABELS.map((label, offset) => {
         const date = new Date(monday.getTime())
@@ -76,7 +74,7 @@ export function WeekCalendar({ bookings }) {
             <div className="calendar-col" key={day.iso}>
               <div className="calendar-head">
                 <strong>{day.label}</strong>
-                <span>{day.iso.slice(-2)}</span>
+                <span>{day.iso.slice(5)}</span>
               </div>
               {HOURS.map((hour) => {
                 const booking = bookings.find(
@@ -92,7 +90,7 @@ export function WeekCalendar({ bookings }) {
                         </span>
                       </div>
                     ) : (
-                      <div className="calendar-slot empty">Free</div>
+                      <div className="calendar-slot empty">Not reserved</div>
                     )}
                   </div>
                 )
@@ -106,7 +104,7 @@ export function WeekCalendar({ bookings }) {
           <i className="swatch" aria-hidden="true" /> Booked, 204BI preferred
         </span>
         <span>
-          <i className="swatch free" aria-hidden="true" /> Free
+          <i className="swatch free" aria-hidden="true" /> Not reserved
         </span>
         <span>Weekdays only, 08:00 to 20:00 Bogota</span>
       </div>

@@ -1,8 +1,8 @@
 /**
- * Every confirmed reservation with a link to its confirmation PDF, plus a
- * print-to-PDF export of the list itself.
+ * Confirmed reservations and links to private run artifacts containing
+ * the original university-issued confirmation PDFs.
  */
-import { Download, FileText, Printer } from 'lucide-react'
+import { FileText } from 'lucide-react'
 
 /** Flat list of confirmed slots across all runs, newest run first. */
 export function collectBookings(runs) {
@@ -20,7 +20,8 @@ export function collectBookings(runs) {
         end: block.end,
         account: block.account,
         room: block.room,
-        pdf: block.pdf || '',
+        pdf: block.pdf_status === 'captured' ? block.pdf : '',
+        confirmationUrl: /^https:\/\/github\.com\/espinosacodes\/automaticStudyRoomReservation\/actions\/runs\/\d+$/.test(block.confirmation_run_url || '') ? block.confirmation_run_url : '',
       })
     }
   }
@@ -35,15 +36,7 @@ export function BookingsTable({ bookings, generatedAt, formatStamp }) {
           {bookings.length} slot{bookings.length === 1 ? '' : 's'} confirmed
           {generatedAt ? `, updated ${formatStamp(generatedAt)}` : ''}.
         </p>
-        <button
-          type="button"
-          className="button ghost no-print"
-          onClick={() => window.print()}
-          disabled={bookings.length === 0}
-        >
-          <Printer size={15} />
-          Download PDF
-        </button>
+
       </div>
 
       {bookings.length === 0 ? (
@@ -72,15 +65,14 @@ export function BookingsTable({ bookings, generatedAt, formatStamp }) {
                   <td className="mono">{booking.account}</td>
                   <td>{booking.room}</td>
                   <td>
-                    {booking.pdf ? (
-                      <a className="pill ok" href={`/${booking.pdf}`} target="_blank" rel="noreferrer">
+                    {booking.pdf && booking.confirmationUrl ? (
+                      <a className="pill ok" href={booking.confirmationUrl} target="_blank" rel="noreferrer">
                         <FileText size={13} />
-                        PDF
+                        Official PDF in run artifacts
                       </a>
                     ) : (
                       <span className="pill busy">
-                        <Download size={13} />
-                        pending
+                        {booking.pdf ? 'Saved locally' : 'Not captured'}
                       </span>
                     )}
                   </td>

@@ -38,6 +38,7 @@ export function StatusPill({ status }) {
     unavailable: ['busy', 'Unavailable'],
     'no-account': ['busy', 'No account'],
     failed: ['bad', 'Failed'],
+    unconfirmed: ['warn', 'Needs verification'],
   }
   const [tone, label] = map[status] ?? map.failed
   return <span className={`pill ${tone}`}>{label}</span>

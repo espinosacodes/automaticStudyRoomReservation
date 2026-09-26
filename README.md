@@ -89,3 +89,17 @@ See `docs/SPEC.md`, `docs/ARCHITECTURE.md`, and `docs/DESIGN.md` for details.
 
 Secrets: `BANNER_USERS_JSON` (six accounts, JSON array), `CLOUDFLARE_API_TOKEN`.
 Variables: `RESERVATION_ROOM`, `RESERVATION_ACTIVITY`.
+
+## Official reservation receipts
+
+The portal issues `ConstanciaDeReservaDeEspacio.pdf` after CONFIRMAR. This is
+the official receipt to present when collecting the room keys. The dashboard
+does not generate or print a substitute PDF.
+
+The automation saves the original download under gitignored `bookings/` with
+a date and unique filename. CI includes these files in the private
+`reservation-evidence` run artifact. A confirmed booking without a saved PDF
+shows `Not captured`; it is never represented by a placeholder receipt.
+
+If submission confirmation is uncertain, the block shows `Needs verification`
+and is not retried with another account. Verify it in the portal first.

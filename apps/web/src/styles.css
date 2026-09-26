@@ -667,3 +667,13 @@ tbody tr:hover {
     margin-top: 0;
   }
 }
+
+.dashboard-nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 28px 0; }
+.dashboard-nav a { padding: 8px 16px; border: 1px solid var(--line); border-radius: var(--radius-action); background: white; color: var(--ink); text-decoration: none; }
+.dashboard-nav a:hover { background: var(--orange-soft); }
+.date-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.date-toolbar label { font-weight: 600; }
+.date-toolbar select { padding: 10px 16px; border: 1px solid var(--line-strong); border-radius: var(--radius-field); background: white; color: var(--ink); font: inherit; }
+.notice { padding: 20px; border: 1px solid var(--orange-line); border-radius: var(--radius-card); background: var(--orange-soft); }
+.calendar-head { height: 70px; }
+:focus-visible { outline: 2px solid var(--orange); outline-offset: 3px; }

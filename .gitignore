@@ -30,3 +30,6 @@ apps/web/dist/
 .DS_Store
 .idea/
 .vscode/
+
+# Official reservation confirmations stay out of git and public assets
+/bookings/
