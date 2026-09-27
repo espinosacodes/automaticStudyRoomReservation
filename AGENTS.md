@@ -51,9 +51,9 @@ reservationTime.json    # default schedule, committed as example only
 2. **Laziest solution wins.** Reuse stdlib / existing helpers before adding deps. No abstraction with one implementation. No new dependency without asking.
 3. **Credentials never touch git.** Read from `BANNER_USERNAME` / `BANNER_PASSWORD` env vars in CI. Local fallback is `credentials.json` (gitignored) or interactive prompt. Never log raw passwords. Mask in logs.
 4. **Playwright is the only browser dep.** Do not reintroduce Selenium or webdriver-manager. Use `playwright install chromium` and `playwright.config` equivalent in Python.
-5. **One shared helper for dates.** All callers use `core/reservation.py:get_next_reservation_date` and `split_into_blocks`. Do not duplicate day-mapping or block-splitting logic. Weekend skip (Sat, Sun to Mon) lives in the same helper.
+5. **One shared helper for dates.** All callers use `core/reservation.py:get_next_reservation_date` and `split_into_blocks`. Do not duplicate day-mapping or block-splitting logic. The helper returns `None` on Friday nights (weekend skipped by choice, Monday outside the portal's +2 day picker window); `main` must exit 0 in that case.
 6. **Every non-trivial change needs a runnable check.** One `pytest` case or an `assert` in `__main__` is enough. No test scaffolding for one-liners.
-7. **Design reuse.** Optional web UI reuses tokens from `curia/.claude/skills/defi-landing-design/SKILL.md` and Valance typography (Figtree) / palette (`#74B93C` primary). See `docs/DESIGN.md`. Do not invent a new palette.
+7. **Design reuse.** Web UI follows the Cloudflare product-page system (warm paper `#FFFBF5`, orange `#F6821F`, dot grid, pill controls). See `docs/DESIGN.md` and the `cloudflare-design-system` skill. Do not invent a new palette.
 8. **Domain.** Production status page, if shipped, is `reservation.getcuria.us` (Cloudflare, `getcuria.us` zone). No other domain without approval.
 9. **Commits.** Conventional Commits. No push to `main` without explicit user approval. Never commit `.env`, `credentials.json`, `encryption_key.key`, or screenshots with session cookies.
 10. **Verify before claiming done.** Run the command you changed and paste output, or explain why it cannot run offline (`banner9` is intranet-only).
@@ -101,5 +101,5 @@ GitHub Actions secrets: `BANNER_USERS_JSON` (required for 6 blocks), optionally 
 ## References
 
 - Target site: `https://banner9.icesi.edu.co/ic_reservas/login` and `/addReserve`
-- Sibling design source: `../curia/.claude/skills/defi-landing-design/SKILL.md` and `../Valance/docs` (Figtree + `#74B93C` palette)
+- Design source: `docs/DESIGN.md` and `.claude/skills/cloudflare-design-system/` (also installed globally in `~/.claude/skills/`)
 - Prior implementation (archived): `git show 0da084c:studyRoomReservation.py` (Selenium, now replaced)

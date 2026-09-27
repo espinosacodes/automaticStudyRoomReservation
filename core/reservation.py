@@ -36,6 +36,10 @@ DEFAULT_END = "20:00"
 DEFAULT_BLOCK_HOURS = 2
 SATURDAY_END = "17:00"
 
+# Furthest day the portal date picker actually enables, measured live: a
+# Monday 3 days out is refused even though the portal text mentions 3 days.
+MAX_DAYS_AHEAD = 2
+
 
 def _to_minutes(value: str) -> int:
     hours, minutes = value.split(":")
@@ -51,15 +55,15 @@ def now_bogota() -> datetime:
     return datetime.now(BOGOTA_TZ)
 
 
-def get_next_reservation_date(now: datetime | None = None) -> date:
-    """Return the day the automation should book.
+def get_next_reservation_date(now: datetime | None = None) -> date | None:
+    """Return the day the automation should book, or None when there is none.
 
     Measured against the live portal: a target 2 days out is selectable, but a
     Monday 3 days out was refused by the date picker even though the portal's
-    own rule text mentions a maximum of 3 days. The safe target is therefore
-    tomorrow, which is always inside the window. When tomorrow is Saturday or
-    Sunday it rolls forward to Monday, because the team skips weekends even
-    though the portal does allow Saturday bookings from 07:00 to 17:00.
+    own rule text mentions a maximum of 3 days. So the scheduler only looks at
+    tomorrow and the day after, skipping Saturday and Sunday by team choice.
+    On a Friday night that leaves nothing (weekend skipped, Monday outside the
+    +2 day window), and the run must exit quietly instead of failing.
 
     Naive input is treated as Bogota time and aware input is converted to it.
     """
@@ -68,10 +72,12 @@ def get_next_reservation_date(now: datetime | None = None) -> date:
         moment = moment.replace(tzinfo=BOGOTA_TZ)
     moment = moment.astimezone(BOGOTA_TZ)
 
-    target = moment.date() + timedelta(days=1)
-    while target.weekday() >= 5:  # Saturday or Sunday -> Monday
-        target += timedelta(days=1)
-    return target
+    today = moment.date()
+    for offset in (1, 2):
+        candidate = today + timedelta(days=offset)
+        if candidate.weekday() < 5:
+            return candidate
+    return None
 
 
 def split_into_blocks(

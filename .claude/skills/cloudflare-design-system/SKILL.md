@@ -144,12 +144,34 @@ Do **not** build it with CSS grid auto-placement across separate header and body
 trees: the browser will place cells into the wrong tracks and booked items drift
 into the wrong day. One day column owns its cells, always.
 
+For a meeting-poll feel, add a left rail with the facts (date, window, room),
+SUN to SAT headers with day numbers, hour rows, hatched weekend columns, booked
+blocks as chips spanning their rows with a colored left border, and a bottom bar
+with the held count plus one dark action button. A two hour booking renders one
+chip in its start cell sized to cover both rows; the covered cell stays empty.
+
+### Pill tabs
+
+Date or view pickers are a pill container (border, full radius, white) holding
+plain buttons; the active one is orange fill with a white label. Use buttons
+with `aria-pressed`, not a select, so all options stay visible.
+
+### Run cards
+
+History reads as pricing-style cards in a grid. The latest card gets an orange
+border and a Latest badge. Each row is a feature-comparison row: a green check
+for done, a dash for skipped, a cross for failed, a clock for pending. Keep the
+rows compact and scannable.
+
 ### Architecture diagram
 
 Diagrams are inline SVG, not images, drawn to look like real infrastructure:
-dashed rounded groups with a small uppercase label, 132 by 56 boxed nodes with a
-title and a sub-label, curved edges with an arrow marker, and exactly one node
-filled `--orange-soft` to mark the entry point. See
+a left-to-right flow of users, compute, a dashed routes box listing the actual
+items, the dispatch namespace, a Data and Storage column, the coordinator, and
+a browser mock showing the page. Columns get their own accent (orange for
+actors, blue for compute and delivery, pink for data). Size every node to its
+longest label; a box that fits the title but clips the sub-label is the most
+common way these diagrams break. See
 `references/architecture-diagram.md` for the node and edge helpers and the flow
 pattern used in the reference implementation.
 

@@ -132,15 +132,29 @@ def accept_requester_step(page: Page) -> None:
     page.wait_for_selector("#activityName", timeout=DEFAULT_TIMEOUT_MS)
 
 
+def _open_menu_options(page: Page, control_id: str):
+    """Open a MUI select and return its option locator.
+
+    A fixed sleep races the portal: the menu sometimes opens before its items
+    render, which used to read as an empty room list. Wait for the first item
+    instead, and return whatever is there after a bounded wait.
+    """
+    page.locator(f"#{control_id}").click()
+    options = page.get_by_role("option")
+    try:
+        options.first.wait_for(timeout=4000)
+    except PlaywrightTimeoutError:
+        pass
+    return options
+
+
 def select_option(page: Page, control_id: str, wanted: str, *, exact: bool = False) -> str:
     """Open a MUI select by id and choose an option.
 
     Matches ``wanted`` against the option label (substring, or exact when
     ``exact``) and falls back to the first option. Returns the chosen label.
     """
-    page.locator(f"#{control_id}").click()
-    page.wait_for_timeout(400)
-    options = page.get_by_role("option")
+    options = _open_menu_options(page, control_id)
     count = options.count()
     labels = [(options.nth(i).inner_text() or "").strip() for i in range(count)]
 
@@ -244,9 +258,7 @@ def rank_rooms(labels: list[str], preferred: str, people: str) -> list[str]:
 
 def list_room_options(page: Page) -> list[str]:
     """Return the room labels currently offered by the Espacio fisico select."""
-    page.locator("#place").click()
-    page.wait_for_timeout(600)
-    options = page.get_by_role("option")
+    options = _open_menu_options(page, "place")
     labels = [(options.nth(i).inner_text() or "").strip() for i in range(options.count())]
     if labels:
         page.keyboard.press("Escape")
@@ -278,10 +290,16 @@ def fill_reservation(
     pick_time(page, 1, end)
 
     # People count drives which rooms are offered, so it must be set before the
-    # room list is fetched.
-    selected_people = select_option(page, "peopleQuantity", people, exact=True)
+    # room list is fetched. Wait for the portal's own availability call so the
+    # menu below reads fresh data instead of racing it. If no fresh call fires
+    # (value unchanged), fall back to a short settle.
+    try:
+        with page.expect_response(re.compile(r"availableByUser"), timeout=8000):
+            selected_people = select_option(page, "peopleQuantity", people, exact=True)
+    except PlaywrightTimeoutError:
+        selected_people = select_option(page, "peopleQuantity", people, exact=True)
+        page.wait_for_timeout(1200)
     logger.info("People: %s", selected_people)
-    page.wait_for_timeout(1500)
 
     available = list_room_options(page)
     if not available:
@@ -512,13 +530,17 @@ def run_day(
     """
     pool = list(accounts)
     results: list[dict] = []
-    for start, end in blocks:
+    pending = list(blocks)
+    while pending:
+        start, end = pending.pop(0)
         result: dict | None = None
         attempts = 0
         while pool and attempts < len(accounts):
             account = pool.pop(0)
             attempts += 1
             result = run_block(browser, account, target_date, start, end, dry_run)
+            if "not selectable" in result.get("detail", ""):
+                break  # date-wide problem, another account cannot fix it
             if result["status"] == "unavailable":
                 pool.insert(0, account)  # nothing booked, keep the account
                 break
@@ -537,6 +559,23 @@ def run_day(
                 "detail": "no account left for this block",
             }
         results.append(result)
+
+        if "not selectable" in result.get("detail", ""):
+            # Every block shares the date, so retrying it is pure waste.
+            # Skip the rest of the day instead of burning accounts.
+            logger.warning("Date %s outside the portal window, skipping the rest", target_date)
+            for rest_start, rest_end in pending:
+                results.append(
+                    {
+                        "start": rest_start,
+                        "end": rest_end,
+                        "account": "",
+                        "room": "",
+                        "status": "skipped",
+                        "detail": f"date {target_date} outside the portal window",
+                    }
+                )
+            break
     return results
 
 
@@ -570,6 +609,13 @@ def main(argv: list[str] | None = None) -> int:
     started_at = now_bogota()
     accounts = config.load_accounts()
     target_date = get_next_reservation_date()
+    if target_date is None:
+        logger.info(
+            "No bookable weekday inside the portal window. "
+            "Friday nights have nothing to do: the weekend is skipped by choice "
+            "and Monday sits outside the +2 day picker window."
+        )
+        return 0
     blocks = build_schedule(target_date)
     logger.info(
         "Target %s (%s): %d block(s), %d account(s)",

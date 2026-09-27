@@ -105,3 +105,30 @@ def test_uncertain_submission_is_not_retried(monkeypatch):
     )
     assert results[0]["status"] == "unconfirmed"
     capture.assert_called_once()
+
+
+def test_unselectable_date_skips_the_rest_of_the_day(monkeypatch):
+    browser = MagicMock()
+    calls = []
+
+    def fake_run_block(browser_arg, account, target_date, start, end, dry_run):
+        calls.append(account.username)
+        return {
+            "start": start,
+            "end": end,
+            "account": account.username,
+            "room": "",
+            "status": "failed",
+            "detail": "timeout: date 2026-09-28 is not selectable in the portal",
+        }
+
+    monkeypatch.setattr(main, "run_block", fake_run_block)
+    results = main.run_day(
+        browser,
+        [Account("test-a", "secret"), Account("test-b", "secret")],
+        [("08:00", "10:00"), ("10:00", "12:00"), ("12:00", "14:00")],
+        date(2026, 9, 28),
+        False,
+    )
+    assert [item["status"] for item in results] == ["failed", "skipped", "skipped"]
+    assert calls == ["test-a"]  # one attempt, then the day is abandoned

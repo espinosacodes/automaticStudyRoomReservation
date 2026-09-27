@@ -567,41 +567,9 @@ tbody tr:hover {
   font-size: 10px;
 }
 
-.d-edge {
-  stroke: var(--line-strong);
-  stroke-width: 1.5;
-  fill: none;
-}
-
-.d-edge-container {
-  stroke: var(--line-strong);
-  stroke-width: 1.5;
-  stroke-dasharray: 5 4;
-  fill: none;
-}
-
 .d-note {
   fill: var(--ink-soft);
   font-size: 11px;
-}
-
-.node-box {
-  fill: #fff;
-  stroke: var(--line-strong);
-  rx: 10;
-}
-
-.node-box.accent {
-  fill: var(--orange-soft);
-  stroke: var(--orange-line);
-}
-
-.node-box.plain {
-  fill: var(--paper);
-}
-
-.node-icon {
-  color: var(--orange);
 }
 
 /* -------------------------------------------------------------- misc ---- */
@@ -724,4 +692,316 @@ tbody tr:hover {
   .brand small { font-size: 10px; }
   .portal-link { font-size: 11px; }
   .login-card { padding: 28px; }
+}
+
+/* --------------------------------------- meeting-poll week view ------ */
+
+.poll-body {
+  display: flex;
+  align-items: stretch;
+}
+
+.poll-side {
+  flex: 0 0 220px;
+  padding: 20px 18px;
+  border-right: 1px solid var(--line);
+  background: var(--paper);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.poll-fact-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 5px;
+}
+
+.poll-fact-value {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.poll-month {
+  padding: 12px 16px 0;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.poll-week {
+  min-width: 860px;
+}
+
+.calendar-col.weekend .calendar-head {
+  color: var(--ink-faint);
+}
+
+.calendar-col.weekend .calendar-cell {
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 6px,
+    rgb(49 49 49 / 4%) 6px,
+    rgb(49 49 49 / 4%) 12px
+  );
+}
+
+.calendar-hour.poll-hour {
+  height: 44px;
+}
+
+.calendar-cell.poll-cell {
+  height: 44px;
+  position: relative;
+}
+
+.calendar-slot.covered {
+  height: 100%;
+}
+
+.calendar-slot.booked.span2 {
+  position: relative;
+  z-index: 1;
+  height: calc(200% + 7px);
+  border-left: 3px solid var(--orange);
+}
+
+.poll-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--line);
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.button.dark {
+  background: #1f2937;
+  color: #fff;
+}
+
+.button.dark:hover {
+  background: #111827;
+}
+
+/* -------------------------------------------------------- pill tabs ---- */
+
+.pill-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-action);
+  background: #fff;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.pill-tabs button {
+  padding: 8px 18px;
+  border-radius: var(--radius-action);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.pill-tabs button:hover {
+  background: var(--paper-deep);
+}
+
+.pill-tabs button.active {
+  background: var(--orange);
+  color: #fff;
+}
+
+/* -------------------------------------------------------- run cards ---- */
+
+.run-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.run-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 20px;
+}
+
+.run-card.featured {
+  border: 1.5px solid var(--orange);
+}
+
+.run-card header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.run-date {
+  margin: 0;
+  font-weight: 650;
+  font-size: 14px;
+}
+
+.run-card header .mono {
+  font-size: 12px;
+}
+
+.run-count {
+  margin: 10px 0 4px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.run-latest {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--orange-hover);
+  background: var(--orange-soft);
+  border: 1px solid var(--orange-line);
+  border-radius: var(--radius-action);
+  padding: 2px 8px;
+}
+
+.run-card ul {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.run-card li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.run-card li:last-child {
+  border-bottom: 0;
+}
+
+.run-room {
+  color: var(--ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mark {
+  flex-shrink: 0;
+}
+
+.mark.ok {
+  color: var(--ok);
+}
+
+.mark.warn {
+  color: var(--warn);
+}
+
+.mark.bad {
+  color: var(--bad);
+}
+
+.mark.muted {
+  color: var(--ink-faint);
+}
+
+/* ------------------------------------------------- flow diagram ------- */
+
+.d-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.d-tag-user {
+  fill: var(--orange-hover);
+}
+
+.d-node {
+  fill: #fff;
+  stroke: var(--line-strong);
+  stroke-width: 1.5;
+}
+
+.d-node-user {
+  stroke: var(--orange-line);
+}
+
+.d-node-compute {
+  stroke: #7fb3e8;
+}
+
+.d-node-data {
+  stroke: #e3a4dd;
+}
+
+.d-node-icon-user {
+  color: var(--orange);
+}
+
+.d-node-icon-compute {
+  color: #2f7fd0;
+}
+
+.d-node-icon-data {
+  color: #b832a0;
+}
+
+.d-edge-flow {
+  stroke: var(--line-strong);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+  fill: none;
+}
+
+.d-route {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  fill: var(--ink-soft);
+}
+
+.d-browser-url {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  fill: var(--ink-soft);
+}
+
+@media (max-width: 860px) {
+  .poll-body {
+    flex-direction: column;
+  }
+  .poll-side {
+    flex: none;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px 28px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
 }

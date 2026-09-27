@@ -14,15 +14,15 @@ from core.reservation import (
 @pytest.mark.parametrize(
     ("now", "expected"),
     [
-        # Thursday -> Friday
+        # Thursday -> Friday (+1)
         (datetime(2026, 9, 24, 9, 0), date(2026, 9, 25)),
-        # Friday -> Saturday is skipped, so Monday
-        (datetime(2026, 9, 25, 9, 0), date(2026, 9, 28)),
-        # Saturday -> Sunday is skipped, so Monday
+        # Friday -> nothing (weekend skipped, Monday outside the +2 window)
+        (datetime(2026, 9, 25, 9, 0), None),
+        # Saturday -> Monday (+2)
         (datetime(2026, 9, 26, 9, 0), date(2026, 9, 28)),
-        # Sunday -> Monday
+        # Sunday -> Monday (+1)
         (datetime(2026, 9, 27, 9, 0), date(2026, 9, 28)),
-        # Monday -> Tuesday
+        # Monday -> Tuesday (+1)
         (datetime(2026, 9, 28, 9, 0), date(2026, 9, 29)),
     ],
 )
@@ -33,7 +33,16 @@ def test_get_next_reservation_date(now, expected):
 def test_get_next_reservation_date_never_lands_on_a_weekend():
     for day in range(1, 15):
         target = get_next_reservation_date(datetime(2026, 9, day, 9, 0))
-        assert target.weekday() < 5, target
+        if target is not None:
+            assert target.weekday() < 5, target
+
+
+def test_get_next_reservation_date_stays_inside_the_window():
+    for day in range(1, 15):
+        now = datetime(2026, 9, day, 9, 0)
+        target = get_next_reservation_date(now)
+        if target is not None:
+            assert 1 <= (target - now.date()).days <= 2, target
 
 
 def test_get_next_reservation_date_anchors_to_bogota_time():

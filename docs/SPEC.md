@@ -51,7 +51,7 @@ WhatsApp context (Valance group, 2026-09-21 to 2026-09-23):
 Reuse one helper: `core/reservation.py:get_next_reservation_date` plus a new pure helper `core/reservation.py:split_into_blocks(date, start="08:00", end="20:00", block_hours=2)`.
 
 - Map `Monday` to `Sunday` to 0 to 6.
-- Compute next weekday target. The booking window opens at 23:59 for the next calendar day, so if today is Monday 23:59, target is Tuesday. If target is Saturday or Sunday, skip to Monday. No weekend bookings.
+- Compute the target day with `get_next_reservation_date`: tomorrow, or the day after, skipping Saturday and Sunday by team choice. Measured live, the portal picker enables at most 2 days out (a Monday 3 days out is refused), so on Friday nights there is no bookable day and the run exits 0. No weekend bookings.
 - For the target date `YYYY-MM-DD`, split `08:00` to `20:00` into six 2 hour blocks: `08:00-10:00`, `10:00-12:00`, `12:00-14:00`, `14:00-16:00`, `16:00-18:00`, `18:00-20:00`.
 - Return `[(date, start, end), ...]` list. The caller assigns each block to the next credential in `BANNER_USERS_JSON` in order, so the 2 hour per user limit is respected.
 - Both helpers are pure, unit-tested, no Playwright dependency.
@@ -89,7 +89,7 @@ python main.py [--headed] [--dry-run] [--debug]
 
 - GitHub Actions workflow `.github/workflows/reserve.yml` with `cron: '59 4 * * *'` which is 23:59 America/Bogota (04:59 UTC next day). Also `workflow_dispatch` for manual run.
 - Concurrency group `reserve` with `cancel-in-progress: false`.
-- The job runs only if the computed target is Monday to Friday. If the target is Saturday or Sunday, it logs `skip: weekend` and exits 0.
+- The job exits 0 without booking when no weekday sits inside the portal's +2 day picker window (Friday nights). A date the picker refuses aborts the rest of the day as skipped instead of burning accounts on retries.
 - Upload `before_submit_*.png` and `after_submit_*.png` as artifact, always.
 - One cron covers all 6 blocks. No per-block schedule. The script loops the 6 blocks internally, rotating credentials.
 

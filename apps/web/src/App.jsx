@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Archive, Cloud, FileJson, Github, Monitor, Terminal } from 'lucide-react'
+import { AlarmClock, Archive, Cloud, Database, FileJson, Monitor, Terminal, Users } from 'lucide-react'
 
 import { ArchitectureDiagram } from './components/ArchitectureDiagram.jsx'
 import { BookingsTable, collectBookings } from './components/BookingsTable.jsx'
@@ -80,12 +80,19 @@ export default function App() {
         <nav className="dashboard-nav" aria-label="Dashboard sections">
           <a href="#bookings">Reservations</a><a href="#calendar">Week</a><a href="#runs">Run history</a><a href="#architecture">How it works</a>
         </nav>
-        <div className="date-toolbar">
-          <label htmlFor="booking-date">Reservation date</label>
-          <select id="booking-date" value={activeDate || ''} onChange={(event) => setSelectedDate(event.target.value)} disabled={!dates.length}>
-            {!dates.length && <option value="">No runs yet</option>}
-            {dates.map((date) => <option key={date} value={date}>{date}</option>)}
-          </select>
+        <div className="pill-tabs" role="group" aria-label="Reservation date">
+          {dates.length === 0 && <span className="muted">No runs yet</span>}
+          {dates.map((date) => (
+            <button
+              key={date}
+              type="button"
+              className={date === activeDate ? 'active' : ''}
+              aria-pressed={date === activeDate}
+              onClick={() => setSelectedDate(date)}
+            >
+              {date}
+            </button>
+          ))}
         </div>
         <section className="section" style={{ marginTop: 24 }}>
           <div className="card-grid">
@@ -127,7 +134,7 @@ export default function App() {
           title="The week at a glance"
           description="Booked blocks per weekday and hour, so gaps in the day are obvious."
         >
-          <WeekCalendar bookings={bookings} targetDate={activeDate} />
+          <WeekCalendar bookings={bookings} targetDate={activeDate} actionsUrl={ACTIONS_URL} />
         </Section>
 
         <Section
@@ -137,12 +144,18 @@ export default function App() {
           description="A cron wakes a headless browser, the run writes its state, and a Cloudflare Worker delivers this page."
         >
           <ArchitectureDiagram
-            Github={Github}
+            blocks={(latest?.blocks ?? []).map((block) => ({
+              start: block.start,
+              room: block.room,
+            }))}
+            Users={Users}
             Terminal={Terminal}
-            FileJson={FileJson}
-            Cloud={Cloud}
-            Archive={Archive}
             Monitor={Monitor}
+            AlarmClock={AlarmClock}
+            FileJson={FileJson}
+            Archive={Archive}
+            Database={Database}
+            Cloud={Cloud}
           />
         </Section>
 

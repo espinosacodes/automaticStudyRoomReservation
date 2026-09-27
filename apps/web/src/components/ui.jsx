@@ -37,6 +37,7 @@ export function StatusPill({ status }) {
     partial: ['warn', 'Partial'],
     unavailable: ['busy', 'Unavailable'],
     'no-account': ['busy', 'No account'],
+    skipped: ['busy', 'Skipped'],
     failed: ['bad', 'Failed'],
     unconfirmed: ['warn', 'Needs verification'],
   }
