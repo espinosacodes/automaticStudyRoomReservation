@@ -5,7 +5,6 @@ import { ArchitectureDiagram } from './components/ArchitectureDiagram.jsx'
 import { BookingsTable, collectBookings } from './components/BookingsTable.jsx'
 import { RunsHistory, runStatus } from './components/RunsHistory.jsx'
 import { Section, StatCard, StatusPill } from './components/ui.jsx'
-import { Topbar } from './components/Topbar.jsx'
 import { WeekCalendar } from './components/WeekCalendar.jsx'
 
 const ACTIONS_URL =
@@ -48,7 +47,6 @@ export default function App() {
   if (state.loading) {
     return (
       <div className="page">
-        <Topbar />
         <div className="empty">Loading status...</div>
       </div>
     )
@@ -66,7 +64,6 @@ export default function App() {
 
   return (
     <>
-      <Topbar />
       <main className="page">
         {state.error && <div className="notice" role="alert">Status could not be loaded. <button className="button ghost" onClick={() => window.location.reload()}>Retry</button></div>}
         <section className="hero">

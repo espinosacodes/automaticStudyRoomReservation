@@ -5,9 +5,15 @@
   "workers_dev": true,
   "assets": {
     "directory": "./apps/web/dist",
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "single-page-application",
+    "binding": "ASSETS",
+    "run_worker_first": true
   },
   "routes": [
-    { "pattern": "reservation.getcuria.us", "custom_domain": true }
-  ]
+    {
+      "pattern": "reservation.getcuria.us",
+      "custom_domain": true
+    }
+  ],
+  "main": "worker/index.mjs"
 }

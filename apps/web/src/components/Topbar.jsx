@@ -1,24 +1,19 @@
-import { Cloud, ExternalLink } from 'lucide-react'
+import { BookOpen, ExternalLink, LogOut } from 'lucide-react'
 
-const ACTIONS_URL =
-  'https://github.com/espinosacodes/automaticStudyRoomReservation/actions/workflows/reserve.yml'
-
-export function Topbar() {
+export function Topbar({ user, onLogout }) {
   return (
     <header className="topbar">
-      <div className="brand">
-        <Cloud size={20} strokeWidth={1.8} />
-        <div>
-          reservation.getcuria.us
-          <small>Automated study room booking</small>
-        </div>
-      </div>
-      <div className="row">
-        <span className="badge">ICESI library</span>
-        <a className="button ghost" href={ACTIONS_URL} target="_blank" rel="noreferrer">
-          <ExternalLink size={15} />
-          Screenshots
+      <div className="topbar-inner">
+        <a className="brand" href="/" aria-label="Study rooms home">
+          <span className="brand-mark"><BookOpen size={21} strokeWidth={1.8} /></span>
+          <span>Study rooms<small>Valance · ICESI library</small></span>
         </a>
+        <div className="topbar-actions">
+          {user ? <>
+            <span className="member-email" title={user.email}>{user.email}</span>
+            <button className="button ghost" onClick={onLogout}><LogOut size={15} /> Sign out</button>
+          </> : <a className="portal-link" href="https://banner9.icesi.edu.co/ic_reservas/login" target="_blank" rel="noreferrer">ICESI portal <ExternalLink size={14} /></a>}
+        </div>
       </div>
     </header>
   )

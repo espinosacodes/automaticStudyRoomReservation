@@ -32,9 +32,13 @@ jobs:
         run: pip install -r requirements.txt && playwright install chromium --with-deps
 
       - name: Restore previous status
+        env:
+          STATUS_READ_TOKEN: ${{ secrets.STATUS_READ_TOKEN }}
         run: |
-          curl -fsS --max-time 30 https://reservation.getcuria.us/status.json -o status.json \
-            || echo "No previous status.json yet, starting fresh."
+          curl -fsS --max-time 30 \
+            -H "Authorization: Bearer $STATUS_READ_TOKEN" \
+            https://reservation.getcuria.us/status.json -o status.json
+
 
       - name: Run reservations
         id: run

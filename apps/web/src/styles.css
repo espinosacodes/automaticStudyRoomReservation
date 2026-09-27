@@ -677,3 +677,36 @@ tbody tr:hover {
 .notice { padding: 20px; border: 1px solid var(--orange-line); border-radius: var(--radius-card); background: var(--orange-soft); }
 .calendar-head { height: 70px; }
 :focus-visible { outline: 2px solid var(--orange); outline-offset: 3px; }
+
+/* Shared header stays aligned with the dashboard and fits narrow screens. */
+.topbar { padding: 0 24px; background: var(--paper); }
+.topbar-inner { width: 100%; max-width: 1032px; margin: auto; min-height: 78px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.brand { color: var(--ink); text-decoration: none; flex-shrink: 0; font-size: 16px; }
+.brand-mark { width: 42px; height: 42px; display: grid; place-items: center; background: var(--orange-soft); border: 1px solid var(--orange-line); border-radius: 12px; }
+.brand small { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
+.topbar-actions { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.member-email { font-size: 12px; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 250px; }
+.portal-link { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-soft); text-decoration: none; font-size: 13px; white-space: nowrap; }
+.login-page { min-height: calc(100dvh - 79px); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 56px 20px 32px; }
+.login-card { width: 100%; max-width: 460px; padding: 40px; border: 1px solid var(--line); border-radius: 22px; background: white; box-shadow: var(--shadow-card); }
+.login-icon { display: grid; place-items: center; width: 60px; height: 60px; border: 1px solid var(--orange-line); background: var(--orange-soft); color: var(--orange); border-radius: 17px; margin-bottom: 28px; }
+.login-card h1 { font-size: clamp(36px, 7vw, 48px); margin: 12px 0 20px; }
+.login-card h1 em { color: var(--orange); font-style: normal; }
+.login-description { color: var(--ink-soft); margin-bottom: 28px; }
+.google-signin { width: 100%; gap: 12px; min-height: 48px; background: white; color: var(--ink); border: 1px solid var(--line-strong); text-decoration: none; }
+.google-signin:hover { background: var(--paper-deep); color: var(--ink); }
+.google-letter { font-size: 20px; font-weight: 700; }
+.login-note { display: flex; gap: 8px; align-items: flex-start; color: var(--ink-soft); font-size: 12px; border-top: 1px solid var(--line); margin-top: 28px; padding-top: 20px; }
+.login-note svg { flex-shrink: 0; }
+.login-footnote { font-size: 12px; color: var(--ink-soft); margin-top: 24px; text-align: center; }
+.login-error { color: var(--bad); margin-top: 16px; }
+@media (max-width: 540px) {
+  .topbar { padding: 0 16px; }
+  .topbar-inner { min-height: 70px; gap: 10px; }
+  .member-email { display: none; }
+  .topbar-actions .button { padding: 0 12px; }
+  .brand { font-size: 15px; gap: 8px; }
+  .brand small { font-size: 10px; }
+  .portal-link { font-size: 11px; }
+  .login-card { padding: 28px; }
+}

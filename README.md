@@ -103,3 +103,25 @@ shows `Not captured`; it is never represented by a placeholder receipt.
 
 If submission confirmation is uncertain, the block shows `Needs verification`
 and is not retried with another account. Verify it in the portal first.
+
+## Google sign-in
+
+The Worker protects status and receipt routes before serving static assets.
+Only verified Google emails in the `ALLOWED_EMAILS` Worker secret can sign in.
+The allowlist is extracted from explicit email addresses in the local Valance
+chat export, not from names or inferred addresses. It is not bundled in the UI.
+
+Configure a Google OAuth web client with the exact redirect URI
+`https://reservation.getcuria.us/auth/callback`. Store `GOOGLE_CLIENT_ID` and
+`GOOGLE_CLIENT_SECRET` as Worker secrets, along with a random `SESSION_SECRET`.
+The `STATUS_READ_TOKEN` secret also belongs in GitHub Actions for status restore.
+It grants read access to status only, not to receipts.
+
+Google authentication uses the authorization code flow with PKCE, signed state,
+and a 12-hour Secure, HttpOnly session cookie. Removing an email from the
+allowlist immediately denies its existing session. Missing OAuth configuration
+keeps private routes closed and displays a configuration message on the login page.
+
+References: [Google OpenID Connect](https://developers.google.com/identity/openid-connect/openid-connect)
+and [Cloudflare asset routing](https://developers.cloudflare.com/workers/static-assets/binding/).
+Run `node --test worker/auth.test.mjs` for the authorization checks.

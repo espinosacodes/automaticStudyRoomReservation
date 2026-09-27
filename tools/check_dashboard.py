@@ -9,6 +9,13 @@ def check():
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
         page = browser.new_page(viewport={"width": 1180, "height": 900})
+        page.route(
+            "**/auth/session",
+            lambda route: route.fulfill(
+                content_type="application/json",
+                body=json.dumps({"user": {"email": "test@example.com"}}),
+            ),
+        )
         runs = [
             {
                 "run_at": "2026-09-25T23:59:00-05:00",
