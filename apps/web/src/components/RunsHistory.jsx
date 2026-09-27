@@ -61,7 +61,7 @@ export function RunsHistory({ runs, formatStamp, actionsUrl }) {
 
   return (
     <div className="run-grid">
-      {runs.slice(0, 6).map((run, index) => (
+      {runs.map((run, index) => (
         <article className={`run-card${index === 0 ? ' featured' : ''}`} key={run.run_at}>
           <header>
             <div>

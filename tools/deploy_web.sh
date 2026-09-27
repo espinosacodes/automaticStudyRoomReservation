@@ -27,17 +27,26 @@ if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
 fi
 
 echo "Fetching current status from $SITE"
+printf '{\n  "generated_at": null,\n  "runs": []\n}\n' > status.live.json
 if [ -n "${STATUS_READ_TOKEN:-}" ]; then
   if curl -fsS --max-time 30 -H "Authorization: Bearer $STATUS_READ_TOKEN" \
-    "$SITE/status.json" -o status.json; then
-    echo "  preserved $(python3 -c 'import json,sys;print(len(json.load(open("status.json"))["runs"]))' 2>/dev/null || echo '?') run(s)"
+    "$SITE/status.json" -o status.live.json; then
+    echo "  fetched live snapshot"
   else
-    echo "  no live status yet, starting fresh"
-    printf '{\n  "generated_at": null,\n  "runs": []\n}\n' > status.json
+    echo "  no live status yet"
   fi
 else
-  echo "  STATUS_READ_TOKEN missing, leaving status.json as is"
+  echo "  STATUS_READ_TOKEN missing"
 fi
+
+# Merge rather than replace: local history stays, and the live snapshot can
+# only add to it. Replacing is what silently erased earlier runs.
+if [ -f status.json ]; then
+  .venv/bin/python -m tools.merge_status status.json status.live.json -o status.json
+else
+  cp status.live.json status.json
+fi
+rm -f status.live.json
 
 if [ -f status.json ]; then
   cp status.json apps/web/public/status.json
@@ -54,4 +63,5 @@ pnpm exec wrangler deploy
 git checkout -- apps/web/public/status.json 2>/dev/null || \
   printf '{\n  "generated_at": null,\n  "runs": []\n}\n' > apps/web/public/status.json
 rm -rf apps/web/public/bookings
+rm -f status.live.json
 echo "Done. Live history preserved."

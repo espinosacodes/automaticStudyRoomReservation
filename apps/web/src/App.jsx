@@ -261,7 +261,7 @@ export default function App() {
         id="runs"
         eyebrow="History"
         title="Recent runs"
-        description="Each run in order, with the status of every block."
+        description={`Every recorded run, newest first, all ${runs.length} of them. Each one shows the status of every block.`}
       >
         <RunsHistory runs={runs} formatStamp={formatBogota} actionsUrl={ACTIONS_URL} />
       </Section>
