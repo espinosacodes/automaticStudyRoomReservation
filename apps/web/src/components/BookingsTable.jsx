@@ -40,11 +40,11 @@ export function BookingsTable({ bookings, generatedAt, formatStamp }) {
       </div>
 
       {bookings.length === 0 ? (
-        <div className="table-wrap">
+        <div className="table-wrap" data-optical>
           <div className="empty">No confirmed reservations yet.</div>
         </div>
       ) : (
-        <div className="table-wrap">
+        <div className="table-wrap" data-optical>
           <table>
             <thead>
               <tr>
@@ -58,13 +58,15 @@ export function BookingsTable({ bookings, generatedAt, formatStamp }) {
             <tbody>
               {bookings.map((booking) => (
                 <tr key={`${booking.date}-${booking.start}-${booking.room}`}>
-                  <td>{booking.date}</td>
-                  <td className="mono">
+                  <td data-label="Date">{booking.date}</td>
+                  <td className="mono" data-label="Block">
                     {booking.start} - {booking.end}
                   </td>
-                  <td className="mono">{booking.account}</td>
-                  <td>{booking.room}</td>
-                  <td>
+                  <td className="mono" data-label="Account">
+                    {booking.account}
+                  </td>
+                  <td data-label="Room">{booking.room}</td>
+                  <td data-label="Confirmation">
                     {booking.pdf ? (
                       <a className="pill ok" href={`/${booking.pdf}`} target="_blank" rel="noreferrer">
                         <FileText size={13} />

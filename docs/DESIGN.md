@@ -53,18 +53,24 @@ Success green is reserved for check marks, never for primary actions.
   portal, and sign out. The active section is tracked with an
   `IntersectionObserver` scrollspy. Below 980px it collapses to a top rail with
   the links in a single row.
+- Glass surfaces: the sidebar is not the only glass panel. The stat grid, the
+  bookings table, the week calendar, the run cards, the diagram, and the pill
+  tabs are all `data-optical` with a translucent surface (`--glass`) and a
+  frosted `backdrop-filter`, so the same refraction reads across the page.
+  Six plates on the dashboard.
 - `Atmosphere` and `GlassOptics`: a drifting mesh gradient, with a real WebGL
   refraction pass (`@ybouane/liquidglass`) over inert plates positioned on
   `[data-optical]` elements. Text always stays in the DOM above the optics.
   If WebGL is unavailable the plates are dropped and the frosted CSS surfaces
-  remain. The optics re-scan when the set of `[data-optical]` targets changes,
-  because dashboard cards mount after the status fetch resolves.
+  remain. The optics re-scan on element identity changes, not just counts,
+  because panels mount and get replaced as data loads.
 - `WeekCalendar`: Calendly-style poll. Left rail (date, window, room), SUN–SAT
   columns with hour rows, hatched weekends, booked 2h chips spanning two rows
   with the PDF link, bottom bar with held count and a dark Run now button.
   Each day column owns its cells; never use grid auto-placement across header
   and body trees. Day headers are buttons that select the day. Week navigation
-  (previous, next, This week) lives in the section header.
+  (previous, next, This week) lives in the section header and only changes the
+  week shown, never the selected reservations day.
 - `RunsHistory`: pricing-style cards in a grid, latest run highlighted with an
   orange border and a Latest badge, blocks as check rows (green check booked,
   dash skipped, cross failed, clock dry run).
@@ -73,6 +79,23 @@ Success green is reserved for check marks, never for primary actions.
   (blue), Data & Storage column (pink), Worker coordinator (blue), browser
   mock showing the page. Below 860px it swaps to a readable stacked list
   instead of a shrunken SVG. Size every node to its longest label.
+
+### Responsive
+
+Verified with assertions from 320px to 1440px, no horizontal page scroll.
+
+| Width | Behaviour |
+|---|---|
+| over 980px | sidebar rail, four stat columns |
+| 981px to 981px | sidebar becomes a top rail, stats 2 up |
+| 720px and below | bookings table stacks as label/value rows |
+| 700px and below | weekend columns drop out of the week grid, run cards go single column |
+| 360px and below | stats fall to a single column |
+
+The stat grid uses explicit `repeat(4/2/1)` columns rather than `auto-fit`, so
+there is never an orphan cell leaving a tinted gap. Anything that genuinely
+cannot shrink (the week grid) lives inside its own `overflow-x` scroller; the
+page itself must never scroll sideways.
 
 ### Layering
 

@@ -33,16 +33,18 @@ export function GlassOptics({ reducedMotion, enabled }) {
   const rootRef = useRef(null)
   const [revision, setRevision] = useState(0)
 
-  // The dashboard mounts its cards only after the status fetch resolves, so the
-  // set of optical targets changes after this component first runs. Rebuild the
-  // optics whenever the count changes, otherwise late panels get no glass.
+  // Panels mount, unmount, and get replaced as data changes, so track element
+  // identity rather than just the count. A stale control reference would leave
+  // a plate pinned off-screen where its target used to be.
   useEffect(() => {
     if (!enabled) return undefined
-    let count = document.querySelectorAll('[data-optical]').length
+    let current = Array.from(document.querySelectorAll('[data-optical]'))
+    const changed = (next) =>
+      next.length !== current.length || next.some((el, index) => el !== current[index])
     const observer = new MutationObserver(() => {
-      const next = document.querySelectorAll('[data-optical]').length
-      if (next !== count) {
-        count = next
+      const next = Array.from(document.querySelectorAll('[data-optical]'))
+      if (changed(next)) {
+        current = next
         setRevision((value) => value + 1)
       }
     })

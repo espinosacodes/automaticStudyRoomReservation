@@ -65,7 +65,7 @@ export function WeekCalendar({ bookings, targetDate, selectedDay, onSelectDay, a
   const days = weekOf(targetDate)
   if (!days) {
     return (
-      <div className="calendar">
+      <div className="calendar" data-optical>
         <div className="empty">No bookings yet. The next scheduled run will fill this in.</div>
       </div>
     )
@@ -86,7 +86,7 @@ export function WeekCalendar({ bookings, targetDate, selectedDay, onSelectDay, a
     )
 
   return (
-    <div className="calendar poll">
+    <div className="calendar poll" data-optical>
       <div className="poll-body">
         <aside className="poll-side" aria-label="Reservation facts">
           <div className="poll-fact">

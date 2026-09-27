@@ -175,6 +175,28 @@ blocks as chips spanning their rows with a colored left border, and a bottom bar
 with the held count plus one dark action button. A two hour booking renders one
 chip in its start cell sized to cover both rows; the covered cell stays empty.
 
+### Responsive
+
+The page must not scroll sideways at any width. Anything that genuinely cannot
+shrink (a week grid) lives inside its own `overflow-x` scroller.
+
+- Stats use explicit `repeat(4 / 2 / 1)` columns, not `auto-fit`, so a row
+  never leaves an orphan cell showing the grid's tinted gap.
+- Tables stack into label/value rows on phones. Add `data-label` to each cell
+  and render it with `td::before { content: attr(data-label) }`; this keeps
+  every value labelled after the header row is hidden.
+- Drop columns that carry no information on small screens (weekend columns in
+  a weekday-only schedule) instead of forcing a sideways scroll.
+- Verify with assertions, not eyeballing: for each viewport, assert
+  `documentElement.scrollWidth <= innerWidth`, and check that nothing outside
+  an intentional scroller has `getBoundingClientRect().right > innerWidth`.
+
+**The Decoupling Rule.** A view control (week navigation, pagination, a date
+stepper) must only change what it names. If a derived value falls back to the
+navigated anchor, moving the view silently changes the selected record and the
+detail panel blanks out. Keep the browsed range and the selected item as
+separate state.
+
 ### Pill tabs
 
 Date or view pickers are a pill container (border, full radius, white) holding

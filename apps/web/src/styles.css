@@ -406,7 +406,7 @@ button:disabled {
 
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1px;
   background: var(--line);
   border: 1px solid var(--line);
@@ -1277,4 +1277,212 @@ tbody tr:hover {
 
 .calendar-col.selected .calendar-head strong {
   color: var(--orange-hover);
+}
+
+/* ---------------------------------------------------- glass surfaces --- */
+
+/* Inner panels share the sidebar's material: a translucent surface with a
+   frosted blur, so the liquid-glass refraction behind them reads through.
+   Every one of these is also marked data-optical in the JSX. */
+:root {
+  --glass: rgb(255 253 249 / 72%);
+  --glass-strong: rgb(255 253 249 / 86%);
+  --glass-deep: rgb(250 246 238 / 74%);
+  --glass-blur: blur(16px) saturate(1.2);
+}
+
+.card,
+.run-card,
+.diagram,
+.pill-tabs,
+.table-wrap,
+.calendar {
+  background: var(--glass);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.stat {
+  background: var(--glass);
+}
+
+.card-grid {
+  background: rgb(217 207 190 / 55%);
+}
+
+.table-wrap thead th,
+.calendar-head,
+.calendar-hour,
+.poll-side,
+.poll-foot,
+.calendar-legend {
+  background: var(--glass-deep);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.notice {
+  background: rgb(254 240 227 / 76%);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+/* ----------------------------------------------- responsive, properly -- */
+
+/* Stats: two up on tablets and phones, one only on very narrow screens. */
+@media (max-width: 980px) {
+  .card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .stat {
+    padding: 16px;
+  }
+  .stat dd {
+    font-size: 22px;
+  }
+  .stat dd.mono {
+    font-size: 16px;
+  }
+  .stat small {
+    font-size: 11px;
+  }
+}
+
+/* Bookings table becomes stacked label/value rows, so nothing is clipped. */
+@media (max-width: 720px) {
+  .table-wrap table,
+  .table-wrap tbody,
+  .table-wrap tr,
+  .table-wrap td {
+    display: block;
+    width: 100%;
+  }
+  .table-wrap thead {
+    display: none;
+  }
+  .table-wrap tbody tr {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  .table-wrap tbody tr:last-child {
+    border-bottom: 0;
+  }
+  .table-wrap tbody td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 5px 0;
+    border: 0;
+    text-align: right;
+  }
+  .table-wrap tbody td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    text-align: left;
+  }
+}
+
+/* Week poll: drop the weekend columns on phones (we never book them) so the
+   grid fits without a sideways scroll. */
+@media (max-width: 700px) {
+  .calendar-col.weekend {
+    display: none;
+  }
+  .poll-week {
+    min-width: 520px;
+  }
+  .calendar-col-hours {
+    flex: 0 0 46px;
+  }
+  .calendar-hour.poll-hour,
+  .calendar-cell.poll-cell {
+    height: 38px;
+  }
+  .calendar-hour {
+    font-size: 10px;
+    padding: 6px 8px;
+  }
+  .poll-month {
+    font-size: 15px;
+  }
+  .calendar-slot.booked.span2 strong {
+    font-size: 10px;
+  }
+  .calendar-slot.empty {
+    font-size: 10px;
+  }
+  .poll-foot {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .button.dark {
+    justify-content: center;
+  }
+}
+
+/* Run cards: single column, tighter, so a phone shows full rows. */
+@media (max-width: 700px) {
+  .run-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .run-card {
+    padding: 16px;
+  }
+  .run-card li {
+    font-size: 12px;
+    gap: 8px;
+  }
+  .run-room {
+    margin-left: auto;
+  }
+}
+
+/* Diagram and section chrome on phones. */
+@media (max-width: 700px) {
+  .diagram {
+    padding: 16px 14px;
+  }
+  .week-nav {
+    width: 100%;
+  }
+  .week-range {
+    font-size: 11px;
+  }
+  .section {
+    margin-top: 36px;
+  }
+  .section-head h2 {
+    font-size: 24px;
+  }
+  .hero h1 {
+    max-width: none;
+  }
+  .footer {
+    margin-top: 44px;
+  }
+}
+
+@media (max-width: 360px) {
+  .card-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Respect reduced motion for the glass heartbeat and any transition. */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
 }

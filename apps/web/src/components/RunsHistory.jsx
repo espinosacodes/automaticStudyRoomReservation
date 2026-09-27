@@ -60,7 +60,7 @@ export function RunsHistory({ runs, formatStamp, actionsUrl }) {
   }
 
   return (
-    <div className="run-grid">
+    <div className="run-grid" data-optical>
       {runs.map((run, index) => (
         <article className={`run-card${index === 0 ? ' featured' : ''}`} key={run.run_at}>
           <header>

@@ -126,15 +126,18 @@ export default function App() {
   const bookedDays = [...new Set(bookings.map((booking) => booking.date))].sort().reverse()
 
   const viewAnchor = anchor || latest?.target_date || bogotaToday()
-  const viewDay = selectedDay || viewAnchor
+  // The bookings day is independent of the week being browsed. If it fell back
+  // to the week anchor, flipping weeks would silently move the table's date.
+  const defaultDay = latest?.target_date || bogotaToday()
+  const viewDay = selectedDay || defaultDay
   const dayBookings = bookings.filter((booking) => booking.date === viewDay)
   const bookedSlots = dayBookings.length
   const capacity = 6
 
-  const goToWeek = (iso) => {
-    setAnchor(iso)
-    setSelectedDay(iso)
-  }
+  // Moving between weeks only changes the week shown. It must not change the
+  // selected reservation day, or the bookings table would blank out whenever
+  // the new week happens to hold no bookings.
+  const goToWeek = (iso) => setAnchor(iso)
   const openDay = (iso) => {
     setSelectedDay(iso)
     setAnchor(iso)

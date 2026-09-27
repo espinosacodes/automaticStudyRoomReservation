@@ -110,7 +110,7 @@ export function ArchitectureDiagram({
   ]
 
   return (
-    <div className="diagram">
+    <div className="diagram" data-optical>
       <div className="diagram-wide">
         <svg viewBox="0 0 1180 300" role="img" aria-label="How the reservation system runs">
         <defs>
