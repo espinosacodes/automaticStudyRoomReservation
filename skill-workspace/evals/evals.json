@@ -1,0 +1,23 @@
+{
+  "skill_name": "cloudflare-design-system",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I need a small status page for a nightly backup cron that runs on a Linux box. It should show the last run time, whether it succeeded, and a table of the last 10 runs with duration and size. Build it as a single React page with plain CSS, no Tailwind. Put it in ~/backup-page.",
+      "expected_output": "A React page using the Cloudflare system: warm paper canvas with dot grid, orange primary accent used sparingly, hairline table, status pills for success/failure, stat cards for last run. Should default to this style without being told.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Build a dashboard for our internal email queue. Needs four top-line numbers (queued, sent today, failed, average latency), a table of recent sends with recipient and status, and a diagram showing how the mail flows from our app through the queue to the provider. React and CSS only. Save in /tmp/queue-dash.",
+      "expected_output": "Stat grid, hairline table with status pills, and an inline SVG architecture diagram with dashed phase groups, boxed nodes and one accented entry node. Uses the dot grid and paper canvas.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "make me a page to see our weekly standup bookings, monday to friday, with the hours down the side. react, keep it clean and light. /tmp/standup-page",
+      "expected_output": "A week calendar built as day columns with their own cells, hour gutter on the left, booked slots as orange-soft chips, in the Cloudflare palette. Should not use CSS grid auto-placement across separate header and body trees.",
+      "files": []
+    }
+  ]
+}

@@ -65,38 +65,38 @@ function Group({ x, w, label }) {
 export function ArchitectureDiagram({ Github, Terminal, FileJson, Cloud, Archive, Monitor }) {
   return (
     <div className="diagram">
-      <svg viewBox="0 0 1020 200" role="img" aria-label="How the reservation system runs">
+      <svg viewBox="0 0 1120 214" role="img" aria-label="How the reservation system runs">
         <defs>
           <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
             <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--line-strong)" />
           </marker>
         </defs>
 
-        <Group x={4} w={180} label="Schedule" />
-        <Group x={204} w={300} label="Compute" />
-        <Group x={524} w={200} label="State" />
-        <Group x={744} w={272} label="Delivery" />
+        <Group x={4} w={170} label="Schedule" />
+        <Group x={190} w={380} label="Compute" />
+        <Group x={586} w={200} label="State" />
+        <Group x={802} w={290} label="Delivery" />
 
-        <Node x={22} title="Cron" sub="23:59 Bogota" Icon={Github} />
-        <Node x={222} title="Playwright run" sub="6 blocks, 6 accounts" Icon={Terminal} />
-        <Node x={374} title="Portal" sub="banner9.icesi.edu.co" Icon={Monitor} />
-        <Node x={542} title="status.json" sub="booking outcomes" Icon={FileJson} />
-        <Node x={762} title="Worker" sub="static dashboard" accent Icon={Cloud} />
+        <Node x={20} w={140} title="Cron" sub="23:59 Bogota" Icon={Github} />
+        <Node x={206} w={165} title="Playwright run" sub="6 blocks, 6 accounts" Icon={Terminal} />
+        <Node x={386} w={170} title="Portal" sub="banner9.icesi.edu.co" Icon={Monitor} />
+        <Node x={602} w={168} title="status.json" sub="booking outcomes" Icon={FileJson} />
+        <Node x={818} w={200} title="Worker" sub="static dashboard" accent Icon={Cloud} />
 
 
-        <Node x={542} y={140} w={180} title="Run artifacts" sub="Official PDFs, private" Icon={Archive} />
+        <Node x={602} y={140} w={180} title="Run artifacts" sub="Official PDFs, private" Icon={Archive} />
 
-        <Edge x1={154} y1={82} x2={222} y2={82} />
-        <Edge x1={354} y1={82} x2={374} y2={82} />
-        <Edge x1={506} y1={82} x2={542} y2={82} />
-        <Edge x1={674} y1={82} x2={762} y2={82} />
+        <Edge x1={160} y1={82} x2={206} y2={82} />
+        <Edge x1={371} y1={82} x2={386} y2={82} />
+        <Edge x1={556} y1={82} x2={602} y2={82} />
+        <Edge x1={770} y1={82} x2={818} y2={82} />
 
-        <Edge x1={506} y1={82} x2={542} y2={168} dashed />
+        <Edge x1={686} y1={110} x2={686} y2={140} dashed />
 
-        <text className="d-note" x={762} y={186}>
+        <text className="d-note" x={818} y={206}>
           reservation.getcuria.us
         </text>
-        <text className="d-note" x={222} y={186}>
+        <text className="d-note" x={206} y={206}>
           GitHub Actions runner, no server to babysit
         </text>
       </svg>

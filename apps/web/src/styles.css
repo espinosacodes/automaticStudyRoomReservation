@@ -478,6 +478,21 @@ tbody tr:hover {
   white-space: nowrap;
 }
 
+.slot-pdf {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ok);
+  text-decoration: none;
+}
+
+.slot-pdf:hover {
+  text-decoration: underline;
+}
+
 .calendar-slot.empty {
   color: var(--ink-faint);
 }

@@ -25,13 +25,13 @@ import re
 import sys
 from datetime import date
 from pathlib import Path
-from uuid import uuid4
 
 from playwright.sync_api import Browser, Page
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 from core import config
 from core.browser import DEFAULT_TIMEOUT_MS, BrowserSession
+from core.confirmation import fetch_official_pdf, room_code_from_label
 from core.reservation import (
     DAY_NAMES,
     get_next_reservation_date,
@@ -321,37 +321,52 @@ def submit_reservation(page: Page) -> None:
     )
 
 
-def capture_confirmation(page: Page, label: str) -> str:
-    """Submit once. A missing PDF must never cause another reservation."""
+def capture_confirmation(
+    page: Page,
+    *,
+    target: date,
+    start: str,
+    end: str,
+    room_label: str,
+    activity: str,
+    username: str,
+    label: str,
+) -> str:
+    """FINALIZAR then CONFIRMAR, then fetch the guaranteed-full official PDF.
+
+    The click on CONFIRMAR creates the booking. The download the portal emits at
+    creation time is often blank, so the receipt is fetched deterministically
+    through the Jasper report instead, using the stored end time. Returns the
+    saved path, or an empty string when the receipt could not be fetched (the
+    booking itself still succeeded).
+    """
     page.get_by_role("button", name="FINALIZAR").click()
-    download = None
-    try:
-        with page.expect_download(timeout=DEFAULT_TIMEOUT_MS) as download_info:
-            page.get_by_role("button", name="CONFIRMAR", exact=True).click()
-        download = download_info.value
-    except PlaywrightTimeoutError:
-        logger.warning("Confirmation download was not received for %s", label)
+    page.get_by_role("button", name="CONFIRMAR", exact=True).click()
 
     # Booking confirmation and PDF delivery are independent outcomes.
     page.wait_for_function(
         "() => /registrada con .xito/i.test(document.body.innerText)",
         timeout=DEFAULT_TIMEOUT_MS,
     )
-    if download is None:
-        return ""
-    path = Path("bookings") / f"confirmation_{label}_{uuid4().hex}.pdf"
+
+    out = Path("bookings") / f"confirmation_{label}.pdf"
+    out.parent.mkdir(exist_ok=True)
     try:
-        path.parent.mkdir(exist_ok=True)
-        download.save_as(path)
-        with path.open("rb") as saved:
-            if saved.read(5) != b"%PDF-":
-                raise ValueError("Download is not a PDF")
-    except Exception:  # A delivery failure does not undo a confirmed booking.
-        path.unlink(missing_ok=True)
-        logger.warning("Booking confirmed, but its PDF could not be saved")
+        fetch_official_pdf(
+            page,
+            target=target,
+            start=start,
+            end=end,
+            room_code=room_code_from_label(room_label),
+            activity=activity,
+            username=username,
+            out=out,
+        )
+    except Exception:
+        logger.warning("Booking confirmed, but its official PDF could not be fetched")
         return ""
-    logger.info("Saved official confirmation: %s", path.name)
-    return str(path)
+    logger.info("Saved official confirmation: %s", out.name)
+    return str(out)
 
 
 # --------------------------------------------------------------------------
@@ -431,7 +446,16 @@ def run_block(
             )
         else:
             submission_started = True
-            pdf_path = capture_confirmation(page, f"{target_date.isoformat()}_{label}")
+            pdf_path = capture_confirmation(
+                page,
+                target=target_date,
+                start=start,
+                end=end,
+                room_label=room,
+                activity=config.activity_name(),
+                username=account.username,
+                label=f"{target_date.isoformat()}_{label}",
+            )
             result.update(
                 account=mask_username(account.username),
                 room=room,

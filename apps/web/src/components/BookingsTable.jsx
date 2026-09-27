@@ -65,15 +65,18 @@ export function BookingsTable({ bookings, generatedAt, formatStamp }) {
                   <td className="mono">{booking.account}</td>
                   <td>{booking.room}</td>
                   <td>
-                    {booking.pdf && booking.confirmationUrl ? (
+                    {booking.pdf ? (
+                      <a className="pill ok" href={`/${booking.pdf}`} target="_blank" rel="noreferrer">
+                        <FileText size={13} />
+                        PDF
+                      </a>
+                    ) : booking.confirmationUrl ? (
                       <a className="pill ok" href={booking.confirmationUrl} target="_blank" rel="noreferrer">
                         <FileText size={13} />
-                        Official PDF in run artifacts
+                        Run artifact
                       </a>
                     ) : (
-                      <span className="pill busy">
-                        {booking.pdf ? 'Saved locally' : 'Not captured'}
-                      </span>
+                      <span className="pill busy">Not captured</span>
                     )}
                   </td>
                 </tr>

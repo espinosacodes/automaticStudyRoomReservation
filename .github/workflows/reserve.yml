@@ -82,6 +82,10 @@ jobs:
           if [ -f status.json ]; then
             cp status.json apps/web/public/status.json
           fi
+          if ls bookings/*.pdf >/dev/null 2>&1; then
+            mkdir -p apps/web/public/bookings
+            cp bookings/*.pdf apps/web/public/bookings/
+          fi
           pnpm install --frozen-lockfile
           pnpm --filter web build
           pnpm exec wrangler deploy

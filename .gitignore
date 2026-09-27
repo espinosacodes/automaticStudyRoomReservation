@@ -33,3 +33,6 @@ apps/web/dist/
 
 # Official reservation confirmations stay out of git and public assets
 /bookings/
+
+# Built booking PDFs must never be committed (personal data, served from dist)
+apps/web/public/bookings/

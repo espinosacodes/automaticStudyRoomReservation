@@ -126,6 +126,8 @@ Only if you approve after v1 automation works.
 - Activity options are academic Spanish labels; there is no "Study Session", so `Reunión` is the default.
 - Valid booking hours are Monday to Friday 07:00 to 21:00. The date picker only enables the currently open window.
 - When the 10 person room is already booked for a block the block is reported as `unavailable` and the rest continue.
+- The official receipt (`ConstanciaDeReservaDeEspacio.pdf`) is a JasperReports document whose URL is built purely from booking fields (`FECHAINICIO`, `HORAINICIO`, `HORAFIN`, `ESPACIOS`, `ACTIVIDAD`, `USUARIO`). Any active booking can therefore have its receipt regenerated, including bookings made by earlier runs. Two details matter: the end time must be the *stored* end time, one minute before the booked end (08:00-10:00 is stored as 0800-0959, as Mis Reservas shows), and passing the booked end yields a valid but blank PDF. See `core/confirmation.py` and `tools/fetch_confirmation.py`.
+- Mis Reservas offers no per-booking receipt. Its EXPORT menu only has CSV download and browser print.
 
 ## 10. Rollout plan
 

@@ -8,6 +8,7 @@
  * Here every day column owns its own cells, so a slot can only ever render in
  * the column it was placed in.
  */
+import { FileText } from 'lucide-react'
 
 const DAY_LABELS = ['MON', 'TUE', 'WED', 'THU', 'FRI']
 const HOURS = ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00']
@@ -88,6 +89,19 @@ export function WeekCalendar({ bookings, targetDate }) {
                         <span className="mono">
                           {booking.start}-{booking.end}
                         </span>
+                        {booking.pdf && (
+                          <a
+                            className="slot-pdf"
+                            href={`/${booking.pdf}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            title="Official confirmation PDF"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <FileText size={13} />
+                            PDF
+                          </a>
+                        )}
                       </div>
                     ) : (
                       <div className="calendar-slot empty">Not reserved</div>

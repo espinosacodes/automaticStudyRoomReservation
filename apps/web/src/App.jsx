@@ -116,7 +116,7 @@ export default function App() {
           id="bookings"
           eyebrow="Bookings"
           title="Reserved slots and confirmations"
-          description="Every confirmed reservation, with official PDFs available in private run artifacts when captured."
+          description="Every confirmed reservation, with its official confirmation PDF captured from the portal."
         >
           <BookingsTable bookings={dailyBookings} generatedAt={latest?.run_at} formatStamp={formatBogota} />
         </Section>
