@@ -137,6 +137,31 @@ radius. Machine values get `.mono`.
 Always render the human label next to the colour, because colour alone fails for
 colour-blind readers.
 
+### Sidebar and liquid glass
+
+Navigation is a left rail, not a topbar, with the section links, the signed-in
+member, and sign out. Mark it `data-optical` so the glass layer refracts the
+mesh gradient behind it.
+
+Liquid glass is a real WebGL refraction pass (`@ybouane/liquidglass`) over inert
+plates positioned on `[data-optical]` elements, with a drifting mesh gradient
+(`@paper-design/shaders-react`) as the thing being refracted. Two rules keep it
+from becoming a mess:
+
+- **Semantic content stays in the DOM above the optics.** The plates are
+  decorative and inert; text, links, and buttons live above them so they stay
+  crisp, selectable, and accessible. Never render readable labels into the
+  shader.
+- **Degrade, do not break.** If WebGL is unavailable, drop the plates and keep
+  the frosted CSS surface (`backdrop-filter`). Reduced-motion stops the mesh
+  drift and freezes the heartbeat.
+
+**The Layering Rule.** Put the atmosphere and the optical layer as siblings of
+the content container, never inside it. A positioned child with `z-index: 0`
+inside a container paints above that container's static content, which silently
+hides the page behind the background. Give the content container its own
+stacking level instead.
+
 ### Calendar
 
 The week view is a flex row of day columns, each stacking its own time cells.

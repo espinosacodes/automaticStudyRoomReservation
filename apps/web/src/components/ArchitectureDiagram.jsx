@@ -99,9 +99,20 @@ export function ArchitectureDiagram({
   }))
   while (routes.length < 6) routes.push({ start: '--:--', room: '-' })
 
+  const stages = [
+    { label: 'Accounts', detail: 'Six Banner logins, one block each' },
+    { label: 'Viewer', detail: 'Google sign-in, allow-listed emails' },
+    { label: 'Compute', detail: 'Playwright drives banner9.icesi.edu.co' },
+    { label: 'Routes', detail: routes.map((r) => `${r.start} → ${r.room}`).join('  ·  ') },
+    { label: 'Dispatch', detail: 'Cron fires 23:59 Bogota' },
+    { label: 'Data & Storage', detail: 'status.json, confirmation PDFs, D1 for auth' },
+    { label: 'Coordinator', detail: 'Cloudflare Worker serves the dashboard' },
+  ]
+
   return (
     <div className="diagram">
-      <svg viewBox="0 0 1180 300" role="img" aria-label="How the reservation system runs">
+      <div className="diagram-wide">
+        <svg viewBox="0 0 1180 300" role="img" aria-label="How the reservation system runs">
         <defs>
           <marker
             id="flow-arrow"
@@ -186,7 +197,18 @@ export function ArchitectureDiagram({
         <text className="d-note" x={150} y={262}>
           GitHub Actions runner, no server to babysit
         </text>
-      </svg>
+        </svg>
+      </div>
+
+      {/* Narrow screens get a readable stack instead of a shrunken SVG. */}
+      <ol className="diagram-stack">
+        {stages.map((stage) => (
+          <li key={stage.label}>
+            <span className="diagram-stage">{stage.label}</span>
+            <span className="diagram-detail">{stage.detail}</span>
+          </li>
+        ))}
+      </ol>
     </div>
   )
 }

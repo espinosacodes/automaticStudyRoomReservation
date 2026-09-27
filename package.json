@@ -13,6 +13,7 @@
     "node": ">=22"
   },
   "devDependencies": {
-    "wrangler": "^4.42.0"
+    "wrangler": "^4.42.0",
+    "patch-package": "^8.0.1"
   }
 }

@@ -95,42 +95,230 @@ button:disabled {
 /* ---------------------------------------------------------------- shell -- */
 
 .page {
-  max-width: 1080px;
+  max-width: 1000px;
   margin: 0 auto;
-  padding: 0 24px 96px;
+  padding: 0 32px 96px;
 }
 
-.topbar {
+/* Atmosphere, optics, and shell stacking. The mesh gradient sits furthest
+   back, the liquid glass plates refract it, and all semantic content stays
+   above both so text is always crisp and selectable. */
+.atmosphere {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--paper);
+}
+
+.liquid-field {
+  position: absolute !important;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.42;
+}
+
+.atmosphere-wash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 62% 34%,
+    rgb(255 251 245 / 88%) 0%,
+    rgb(255 251 245 / 26%) 62%,
+    transparent 100%
+  );
+}
+
+.optical-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.optical-source {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.optical-plate {
+  position: absolute;
+  isolation: isolate;
+  pointer-events: none;
+}
+
+.shell {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 268px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.shell-main {
+  min-width: 0;
+  padding-top: 8px;
+}
+
+/* -------------------------------------------------------------- sidebar -- */
+
+.sidebar {
   position: sticky;
   top: 0;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 24px;
-  background: rgb(255 251 245 / 86%);
-  border-bottom: 1px solid var(--line);
-  backdrop-filter: blur(12px);
+  align-self: start;
+  height: 100vh;
+  padding: 16px;
 }
 
-.brand {
+.sidebar-glass {
+  position: absolute;
+  inset: 16px 8px 16px 16px;
+  border-radius: 24px;
+  background: rgb(255 253 249 / 62%);
+  border: 1px solid rgb(255 255 255 / 70%);
+  box-shadow:
+    0 18px 50px -26px rgb(49 49 49 / 30%),
+    inset 0 1px 0 rgb(255 255 255 / 90%);
+  backdrop-filter: blur(22px) saturate(1.25);
+  -webkit-backdrop-filter: blur(22px) saturate(1.25);
+}
+
+.sidebar-inner {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 22px 18px;
+}
+
+.sidebar-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-weight: 600;
+  gap: 11px;
+  text-decoration: none;
+  color: var(--ink);
+  font-weight: 650;
+  font-size: 15px;
   letter-spacing: -0.01em;
 }
 
-.brand svg {
+.brand-mark {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: var(--orange-soft);
+  border: 1px solid var(--orange-line);
   color: var(--orange);
+  flex-shrink: 0;
 }
 
-.brand small {
+.brand-copy small {
   display: block;
   color: var(--ink-faint);
   font-size: 11px;
   font-weight: 400;
+}
+
+.sidebar-label {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.sidebar-nav {
+  display: grid;
+  gap: 3px;
+}
+
+.sidebar-nav a {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 12px;
+  border-radius: 13px;
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.sidebar-nav a svg {
+  flex-shrink: 0;
+  color: var(--ink-faint);
+  transition: color 160ms ease;
+}
+
+.sidebar-nav a small {
+  display: block;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+.sidebar-nav a:hover {
+  background: rgb(255 255 255 / 62%);
+  color: var(--ink);
+}
+
+.sidebar-nav a.active {
+  background: var(--orange-soft);
+  border: 1px solid var(--orange-line);
+  color: var(--orange-hover);
+}
+
+.sidebar-nav a.active svg,
+.sidebar-nav a.active small {
+  color: var(--orange-hover);
+}
+
+.sidebar-foot {
+  margin-top: auto;
+  display: grid;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.sidebar-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+
+.sidebar-link:hover {
+  color: var(--orange-hover);
+}
+
+.sidebar-member {
+  margin: 0;
+  font-size: 11px;
+  color: var(--ink-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-signout {
+  justify-content: center;
+  width: 100%;
+  min-height: 36px;
 }
 
 .badge {
@@ -661,17 +849,12 @@ tbody tr:hover {
 .calendar-head { height: 70px; }
 :focus-visible { outline: 2px solid var(--orange); outline-offset: 3px; }
 
-/* Shared header stays aligned with the dashboard and fits narrow screens. */
-.topbar { padding: 0 24px; background: var(--paper); }
-.topbar-inner { width: 100%; max-width: 1032px; margin: auto; min-height: 78px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
-.brand { color: var(--ink); text-decoration: none; flex-shrink: 0; font-size: 16px; }
-.brand-mark { width: 42px; height: 42px; display: grid; place-items: center; background: var(--orange-soft); border: 1px solid var(--orange-line); border-radius: 12px; }
-.brand small { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
-.topbar-actions { display: flex; align-items: center; gap: 16px; min-width: 0; }
-.member-email { font-size: 12px; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 250px; }
-.portal-link { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-soft); text-decoration: none; font-size: 13px; white-space: nowrap; }
-.login-page { min-height: calc(100dvh - 79px); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 56px 20px 32px; }
-.login-card { width: 100%; max-width: 460px; padding: 40px; border: 1px solid var(--line); border-radius: 22px; background: white; box-shadow: var(--shadow-card); }
+/* Shared login surface. The card is marked data-optical so the glass layer
+   refracts behind it while the copy stays crisp above. */
+.login-shell { position: relative; z-index: 2; min-height: 100vh; }
+.login-page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 56px 20px 32px; }
+.login-card { position: relative; width: 100%; max-width: 460px; border-radius: 26px; background: rgb(255 253 249 / 62%); border: 1px solid rgb(255 255 255 / 70%); box-shadow: 0 22px 60px -28px rgb(49 49 49 / 34%), inset 0 1px 0 rgb(255 255 255 / 92%); backdrop-filter: blur(24px) saturate(1.25); -webkit-backdrop-filter: blur(24px) saturate(1.25); }
+.login-card-body { position: relative; z-index: 1; padding: 40px; }
 .login-icon { display: grid; place-items: center; width: 60px; height: 60px; border: 1px solid var(--orange-line); background: var(--orange-soft); color: var(--orange); border-radius: 17px; margin-bottom: 28px; }
 .login-card h1 { font-size: clamp(36px, 7vw, 48px); margin: 12px 0 20px; }
 .login-card h1 em { color: var(--orange); font-style: normal; }
@@ -683,15 +866,36 @@ tbody tr:hover {
 .login-note svg { flex-shrink: 0; }
 .login-footnote { font-size: 12px; color: var(--ink-soft); margin-top: 24px; text-align: center; }
 .login-error { color: var(--bad); margin-top: 16px; }
+
+/* Week navigation in the section header. */
+.week-nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.button.icon-only { padding: 0; width: 38px; min-height: 38px; justify-content: center; }
+.week-range { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: var(--ink-soft); padding: 0 6px; font-variant-numeric: tabular-nums; }
+
 @media (max-width: 540px) {
-  .topbar { padding: 0 16px; }
-  .topbar-inner { min-height: 70px; gap: 10px; }
-  .member-email { display: none; }
-  .topbar-actions .button { padding: 0 12px; }
-  .brand { font-size: 15px; gap: 8px; }
-  .brand small { font-size: 10px; }
-  .portal-link { font-size: 11px; }
-  .login-card { padding: 28px; }
+  .login-card-body { padding: 28px; }
+}
+
+/* The shell collapses to a single column; the sidebar becomes a top rail. */
+@media (max-width: 980px) {
+  .shell { grid-template-columns: minmax(0, 1fr); }
+  .sidebar { position: relative; height: auto; padding: 12px 16px 0; }
+  .sidebar-glass { inset: 12px 16px 0; border-radius: 20px; }
+  .sidebar-inner { gap: 14px; padding: 16px 14px; }
+  .sidebar-nav { grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; }
+  .sidebar-nav a { flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px; }
+  .sidebar-nav a small { display: none; }
+  .sidebar-label { display: none; }
+  .sidebar-foot { margin-top: 0; grid-template-columns: 1fr auto; align-items: center; }
+  .sidebar-signout { width: auto; justify-self: end; }
+  .sidebar-member { grid-column: 1 / -1; }
+  .page { padding: 0 16px 72px; }
+}
+
+@media (max-width: 620px) {
+  .sidebar-nav a span { font-size: 12px; }
+  .sidebar-foot { grid-template-columns: 1fr; }
+  .sidebar-signout { justify-self: start; }
 }
 
 /* --------------------------------------- meeting-poll week view ------ */
@@ -1004,4 +1208,73 @@ tbody tr:hover {
     border-right: 0;
     border-bottom: 1px solid var(--line);
   }
+}
+
+/* ------------------------------------------------ responsive diagram --- */
+
+.diagram-stack {
+  display: none;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.diagram-stack li {
+  display: grid;
+  gap: 4px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.diagram-stack li:last-child {
+  border-bottom: 0;
+}
+
+.diagram-stage {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--orange);
+}
+
+.diagram-detail {
+  font-size: 13px;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 860px) {
+  .diagram-wide {
+    display: none;
+  }
+  .diagram-stack {
+    display: block;
+  }
+  .diagram {
+    padding: 20px 18px;
+  }
+}
+
+/* ------------------------------------------- calendar day selection --- */
+
+.calendar-head {
+  display: block;
+  width: 100%;
+  font: inherit;
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+
+.calendar-head:hover {
+  background: var(--orange-soft);
+}
+
+.calendar-col.selected .calendar-head {
+  background: var(--orange-soft);
+  box-shadow: inset 0 -2px 0 var(--orange);
+}
+
+.calendar-col.selected .calendar-head strong {
+  color: var(--orange-hover);
 }

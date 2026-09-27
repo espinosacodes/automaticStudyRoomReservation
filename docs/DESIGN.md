@@ -48,18 +48,39 @@ Success green is reserved for check marks, never for primary actions.
 
 ### Components
 
+- `Sidebar`: a vertical rail replacing the old topbar. Brand, section links
+  (Reservations, Week, Run history, How it works), the signed-in member, ICESI
+  portal, and sign out. The active section is tracked with an
+  `IntersectionObserver` scrollspy. Below 980px it collapses to a top rail with
+  the links in a single row.
+- `Atmosphere` and `GlassOptics`: a drifting mesh gradient, with a real WebGL
+  refraction pass (`@ybouane/liquidglass`) over inert plates positioned on
+  `[data-optical]` elements. Text always stays in the DOM above the optics.
+  If WebGL is unavailable the plates are dropped and the frosted CSS surfaces
+  remain. The optics re-scan when the set of `[data-optical]` targets changes,
+  because dashboard cards mount after the status fetch resolves.
 - `WeekCalendar`: Calendly-style poll. Left rail (date, window, room), SUN–SAT
   columns with hour rows, hatched weekends, booked 2h chips spanning two rows
   with the PDF link, bottom bar with held count and a dark Run now button.
   Each day column owns its cells; never use grid auto-placement across header
-  and body trees.
+  and body trees. Day headers are buttons that select the day. Week navigation
+  (previous, next, This week) lives in the section header.
 - `RunsHistory`: pricing-style cards in a grid, latest run highlighted with an
   orange border and a Latest badge, blocks as check rows (green check booked,
   dash skipped, cross failed, clock dry run).
 - `ArchitectureDiagram`: inline SVG flow — accounts and viewer (orange),
   compute (blue), dashed routes box listing the six blocks, dispatch Cron
   (blue), Data & Storage column (pink), Worker coordinator (blue), browser
-  mock showing the page. Size every node to its longest label.
+  mock showing the page. Below 860px it swaps to a readable stacked list
+  instead of a shrunken SVG. Size every node to its longest label.
+
+### Layering
+
+Paint order matters more than z-index numbers here. The atmosphere and the
+optical layer are siblings of the shell, not children of it: a positioned
+child with `z-index: 0` inside the shell paints above the shell's static
+content and hides the page. Keep background and optics outside the content
+container, and give the content container its own stacking level.
 
 ## What not to design
 

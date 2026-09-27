@@ -61,7 +61,7 @@ function monthLabel(days) {
   return first.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' })
 }
 
-export function WeekCalendar({ bookings, targetDate, actionsUrl }) {
+export function WeekCalendar({ bookings, targetDate, selectedDay, onSelectDay, actionsUrl }) {
   const days = weekOf(targetDate)
   if (!days) {
     return (
@@ -117,13 +117,20 @@ export function WeekCalendar({ bookings, targetDate, actionsUrl }) {
 
             {days.map((day) => (
               <div
-                className={`calendar-col${day.weekend ? ' weekend' : ''}`}
+                className={`calendar-col${day.weekend ? ' weekend' : ''}${
+                  day.iso === selectedDay ? ' selected' : ''
+                }`}
                 key={day.iso}
               >
-                <div className="calendar-head">
+                <button
+                  type="button"
+                  className="calendar-head"
+                  aria-pressed={day.iso === selectedDay}
+                  onClick={() => onSelectDay?.(day.iso)}
+                >
                   <strong>{day.label}</strong>
                   <span>{day.iso.slice(8)}</span>
-                </div>
+                </button>
                 {HOURS.map((hour) => {
                   const booking = bookingAt(day.iso, hour)
                   const covered = !booking && coveredAt(day.iso, hour)
