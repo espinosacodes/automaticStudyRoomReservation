@@ -78,6 +78,30 @@ class RoomUnavailable(Exception):
     """No room matching the requested size was free for the block."""
 
 
+def short_timeout(exc: Exception) -> str:
+    """Condense a Playwright timeout to one line, keeping the waited locator.
+
+    The first line alone ("Locator.click: Timeout ... exceeded") never says
+    which element hung, so the "waiting for ..." call log line is appended.
+    """
+    lines = str(exc).splitlines()
+    head = lines[0] if lines else "timeout"
+    waiting = next((line.strip() for line in lines if "waiting for" in line), "")
+    return f"{head} ({waiting})".strip() if waiting else head
+
+
+def save_failure_shot(page: Page, label: str) -> None:
+    """Best effort screenshot of the portal state at failure.
+
+    The workflow uploads ``*.png`` as artifacts, so this lands next to the
+    ``before_submit`` shots for post run diagnosis.
+    """
+    try:
+        page.screenshot(path=f"failure_{label}.png", full_page=True)
+    except Exception:
+        pass
+
+
 # --------------------------------------------------------------------------
 # CLI and logging
 # --------------------------------------------------------------------------
@@ -358,8 +382,20 @@ def capture_confirmation(
     saved path, or an empty string when the receipt could not be fetched (the
     booking itself still succeeded).
     """
-    page.get_by_role("button", name="FINALIZAR").click()
-    page.get_by_role("button", name="CONFIRMAR", exact=True).click()
+    logger.info("Block %s-%s: clicking FINALIZAR", start, end)
+    finalize = page.get_by_role("button", name="FINALIZAR", exact=True)
+    finalize.scroll_into_view_if_needed()
+    try:
+        finalize.click(timeout=DEFAULT_TIMEOUT_MS)
+    except PlaywrightTimeoutError as exc:
+        raise PlaywrightTimeoutError(f"FINALIZAR click timed out: {short_timeout(exc)}")
+
+    logger.info("Block %s-%s: clicking CONFIRMAR", start, end)
+    confirm = page.get_by_role("button", name="CONFIRMAR", exact=True)
+    try:
+        confirm.click(timeout=DEFAULT_TIMEOUT_MS)
+    except PlaywrightTimeoutError as exc:
+        raise PlaywrightTimeoutError(f"CONFIRMAR click timed out: {short_timeout(exc)}")
 
     # Booking confirmation and PDF delivery are independent outcomes.
     page.wait_for_function(
@@ -493,7 +529,8 @@ def run_block(
         result.update(status="unavailable", detail=str(exc))
         return result
     except PlaywrightTimeoutError as exc:
-        result["detail"] = f"timeout: {exc}".splitlines()[0]
+        result["detail"] = f"timeout: {short_timeout(exc)}"
+        save_failure_shot(page, label)
         logger.warning(
             "Block %s failed with %s: %s",
             f"{start}-{end}",
@@ -502,7 +539,8 @@ def run_block(
         )
         return result
     except Exception as exc:  # noqa: BLE001 - one block must not abort the day
-        result["detail"] = str(exc)
+        result["detail"] = str(exc).splitlines()[0]
+        save_failure_shot(page, label)
         logger.warning("Block %s errored: %s", f"{start}-{end}", result["detail"])
         return result
     finally:
@@ -617,6 +655,13 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0
     blocks = build_schedule(target_date)
+    if len(accounts) < len(blocks):
+        logger.warning(
+            "Only %d account(s) for %d block(s): a fully free day cannot be "
+            "covered, the last block(s) will end with no-account.",
+            len(accounts),
+            len(blocks),
+        )
     logger.info(
         "Target %s (%s): %d block(s), %d account(s)",
         target_date.isoformat(),
