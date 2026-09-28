@@ -112,11 +112,28 @@ button:disabled {
 }
 
 .liquid-field {
-  position: absolute !important;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  inset: -10%;
   opacity: 0.42;
+  background:
+    radial-gradient(38% 42% at 22% 28%, rgb(248 207 164 / 75%), transparent 70%),
+    radial-gradient(34% 38% at 74% 24%, rgb(246 130 31 / 28%), transparent 70%),
+    radial-gradient(44% 48% at 62% 78%, rgb(247 242 233 / 95%), transparent 72%),
+    linear-gradient(115deg, #fffbf5 0%, #f7f2e9 55%, #f8cfa4 100%);
+  animation: liquid-drift 36s ease-in-out infinite alternate;
+}
+
+.liquid-field.is-still {
+  animation: none;
+}
+
+@keyframes liquid-drift {
+  from {
+    transform: translate3d(-1.5%, -1%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(1.5%, 1.5%, 0) scale(1.04);
+  }
 }
 
 .atmosphere-wash {
