@@ -78,6 +78,10 @@ class RoomUnavailable(Exception):
     """No room matching the requested size was free for the block."""
 
 
+class AccountLimit(Exception):
+    """The portal refused the booking for this account (e.g. 2h daily max)."""
+
+
 def short_timeout(exc: Exception) -> str:
     """Condense a Playwright timeout to one line, keeping the waited locator.
 
@@ -86,6 +90,8 @@ def short_timeout(exc: Exception) -> str:
     """
     lines = str(exc).splitlines()
     head = lines[0] if lines else "timeout"
+    if "waiting for" in head:
+        return head
     waiting = next((line.strip() for line in lines if "waiting for" in line), "")
     return f"{head} ({waiting})".strip() if waiting else head
 
@@ -402,8 +408,25 @@ def capture_confirmation(
         except PlaywrightTimeoutError as exc:
             raise PlaywrightTimeoutError(f"FINALIZAR click timed out: {short_timeout(exc)}")
 
+    logger.info("Block %s-%s: waiting for the portal dialog", start, end)
+    try:
+        page.wait_for_selector("[role='dialog']", timeout=DEFAULT_TIMEOUT_MS)
+    except PlaywrightTimeoutError as exc:
+        raise PlaywrightTimeoutError(f"no dialog after FINALIZAR: {short_timeout(exc)}")
+
+    dialog = page.locator("[role='dialog']").first
+    dialog_text = dialog.inner_text()
+    if re.search(r"No es posible continuar", dialog_text, re.IGNORECASE):
+        reason = " ".join(dialog_text.split())
+        logger.warning("Block %s-%s refused by portal: %s", start, end, reason)
+        dismiss = dialog.get_by_role("button", name="OK", exact=True)
+        if dismiss.count():
+            dismiss.click()
+            page.wait_for_timeout(400)
+        raise AccountLimit(f"portal refused: {reason[:200]}")
+
     logger.info("Block %s-%s: clicking CONFIRMAR", start, end)
-    confirm = page.get_by_role("button", name="CONFIRMAR", exact=True)
+    confirm = dialog.get_by_role("button", name="CONFIRMAR", exact=True)
     try:
         confirm.click(timeout=DEFAULT_TIMEOUT_MS)
     except PlaywrightTimeoutError as exc:
@@ -539,6 +562,13 @@ def run_block(
     except RoomUnavailable as exc:
         logger.warning("Block %s unavailable: %s", f"{start}-{end}", exc)
         result.update(status="unavailable", detail=str(exc))
+        return result
+    except AccountLimit as exc:
+        # The account hit the portal quota for this date. It stays consumed
+        # and run_day retries the same block with the next account.
+        logger.warning("Block %s account limited: %s", f"{start}-{end}", exc)
+        result.update(status="account-limit", detail=str(exc))
+        save_failure_shot(page, label)
         return result
     except PlaywrightTimeoutError as exc:
         result["detail"] = f"timeout: {short_timeout(exc)}"
@@ -705,7 +735,11 @@ def main(argv: list[str] | None = None) -> int:
     }
     write_status(record)
 
-    failed = [item for item in results if item["status"] in {"failed", "unconfirmed", "no-account"}]
+    failed = [
+        item
+        for item in results
+        if item["status"] in {"failed", "unconfirmed", "no-account", "account-limit"}
+    ]
     if failed:
         logger.error("%d block(s) failed", len(failed))
         return 1
