@@ -342,6 +342,11 @@ def fill_reservation(
         logger.info("Preferred room not offered, using %s", selected_room)
     logger.info("Room: %s", selected_room)
 
+    # The room menu sometimes stays open after selection, and its modal
+    # overlay then blocks the FINALIZAR button. Dismiss it explicitly.
+    page.keyboard.press("Escape")
+    page.wait_for_timeout(300)
+
     observation = page.locator("#details")
     if observation.count():
         observation.fill("Automated reservation")
@@ -383,12 +388,19 @@ def capture_confirmation(
     booking itself still succeeded).
     """
     logger.info("Block %s-%s: clicking FINALIZAR", start, end)
-    finalize = page.get_by_role("button", name="FINALIZAR", exact=True)
-    finalize.scroll_into_view_if_needed()
+    finalize = page.get_by_role("button", name=re.compile(r"FINALIZAR", re.IGNORECASE))
+    try:
+        finalize.wait_for(state="visible", timeout=DEFAULT_TIMEOUT_MS)
+    except PlaywrightTimeoutError as exc:
+        raise PlaywrightTimeoutError(f"FINALIZAR never visible: {short_timeout(exc)}")
     try:
         finalize.click(timeout=DEFAULT_TIMEOUT_MS)
-    except PlaywrightTimeoutError as exc:
-        raise PlaywrightTimeoutError(f"FINALIZAR click timed out: {short_timeout(exc)}")
+    except PlaywrightTimeoutError:
+        logger.warning("Block %s-%s: FINALIZAR blocked, retrying forced click", start, end)
+        try:
+            finalize.click(timeout=DEFAULT_TIMEOUT_MS, force=True)
+        except PlaywrightTimeoutError as exc:
+            raise PlaywrightTimeoutError(f"FINALIZAR click timed out: {short_timeout(exc)}")
 
     logger.info("Block %s-%s: clicking CONFIRMAR", start, end)
     confirm = page.get_by_role("button", name="CONFIRMAR", exact=True)
