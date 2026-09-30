@@ -46,6 +46,7 @@ The 23:59 Bogota cron must book the next weekday before others take the rooms. E
 
 ## Progress
 - 2026-09-30: explored 13 runs, identified three failure modes, created this document.
+- 2026-09-30: implemented T1 to T6 on branch `fix/reserve-reliability`, commit `c5fe013`.
 
 ## Verification evidence
 - `.venv/bin/python -m pytest -q`: 22 passed.
