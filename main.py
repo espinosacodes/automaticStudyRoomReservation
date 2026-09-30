@@ -7,7 +7,7 @@ Flow per 2 hour block, verified against the live portal:
   espacio fisico -> screenshot -> FINALIZAR (unless dry run).
 
 The portal is a Material UI wizard, so the date and time pickers are driven
-through their dialogs and the selects through their listboxes. Six blocks are
+through their dialogs and the selects through their listboxes. Five blocks are
 booked with rotating Banner accounts because the portal caps a booking at two
 hours per user.
 
@@ -247,9 +247,20 @@ def pick_date(page: Page, target: date) -> None:
         button.click()
         page.wait_for_timeout(300)
 
-    cell = page.get_by_role("gridcell", name=str(target.day), exact=True)
-    if cell.is_disabled():
-        raise PlaywrightTimeoutError(f"date {target} is not selectable in the portal")
+    cells = page.get_by_role("gridcell", name=str(target.day), exact=True)
+    cell = None
+    for index in range(cells.count()):
+        candidate = cells.nth(index)
+        try:
+            if candidate.is_visible() and not candidate.is_disabled():
+                cell = candidate
+                break
+        except PlaywrightTimeoutError:
+            continue
+    if cell is None:
+        cell = cells.first
+        if cell.is_disabled():
+            raise PlaywrightTimeoutError(f"date {target} is not selectable in the portal")
     cell.click()
     page.wait_for_timeout(200)
     page.get_by_role("button", name="OK", exact=True).click()

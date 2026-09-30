@@ -76,7 +76,7 @@ def load_accounts() -> list[Account]:
 def load_schedule_override(path: Path = DEFAULT_SCHEDULE_FILE) -> list[dict] | None:
     """Return ``reservationTime.json`` contents when present, else ``None``.
 
-    The auto generated 08:00 to 20:00 split is the default. This file only
+    The auto generated 08:00 to 18:00 split is the default. This file only
     exists to override that default.
     """
     if not path.exists():

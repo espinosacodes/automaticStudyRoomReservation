@@ -3,6 +3,5 @@
   { "day": "Monday", "startTime": "10:00", "endTime": "12:00" },
   { "day": "Monday", "startTime": "12:00", "endTime": "14:00" },
   { "day": "Monday", "startTime": "14:00", "endTime": "16:00" },
-  { "day": "Monday", "startTime": "16:00", "endTime": "18:00" },
-  { "day": "Monday", "startTime": "18:00", "endTime": "20:00" }
+  { "day": "Monday", "startTime": "16:00", "endTime": "18:00" }
 ]

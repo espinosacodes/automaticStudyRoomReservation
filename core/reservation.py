@@ -25,14 +25,14 @@ DAY_NAMES = [
     "Sunday",
 ]
 
-# Product window. The library study room runs 08:00 to 20:00, split into six
+# Product window. The library study room runs 08:00 to 18:00, split into five
 # back to back 2 hour blocks. The portal also exposes its own fixed franjas that
 # start at 07:00 (07:00-09:00, 09:00-11:00, ...), but the time picker accepts
-# arbitrary start and end times, so 08:00 to 20:00 is bookable and is what we
+# arbitrary start and end times, so 08:00 to 18:00 is bookable and is what we
 # reserve. Saturdays are bookable per the portal (07:00 to 17:00) but the team
 # skips weekends on purpose.
 DEFAULT_START = "08:00"
-DEFAULT_END = "20:00"
+DEFAULT_END = "18:00"
 DEFAULT_BLOCK_HOURS = 2
 SATURDAY_END = "17:00"
 

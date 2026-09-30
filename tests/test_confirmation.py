@@ -145,3 +145,27 @@ def test_unselectable_date_skips_the_rest_of_the_day(monkeypatch):
     )
     assert [item["status"] for item in results] == ["failed", "skipped", "skipped"]
     assert calls == ["test-a"]  # one attempt, then the day is abandoned
+
+
+def test_pick_date_prefers_visible_enabled_cell(monkeypatch):
+    from datetime import date as date_cls
+
+    page = MagicMock()
+    monkeypatch.setattr(main, "_open_picker_month", MagicMock(return_value=(2026, 10)))
+
+    hidden = MagicMock()
+    hidden.is_visible.return_value = False
+    hidden.is_disabled.return_value = False
+    visible = MagicMock()
+    visible.is_visible.return_value = True
+    visible.is_disabled.return_value = False
+
+    cells = MagicMock()
+    cells.count.return_value = 2
+    cells.nth.side_effect = [hidden, visible]
+    page.get_by_role.return_value = cells
+
+    main.pick_date(page, date_cls(2026, 10, 1))
+
+    visible.click.assert_called_once()
+    hidden.click.assert_not_called()
