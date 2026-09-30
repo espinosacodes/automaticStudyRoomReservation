@@ -101,3 +101,15 @@ def test_rank_rooms_prefers_requested_then_largest_available():
     assert rank_rooms([room_4], "", "10") == [room_4]
     # Largest wins regardless of the requested count.
     assert rank_rooms([room_4, room_10], "", "4")[0] == room_10
+
+
+def test_is_infra_failure_marks_network_trouble_only():
+    from main import is_infra_failure
+
+    assert is_infra_failure("timeout: Page.goto: Timeout 15000ms exceeded.")
+    assert is_infra_failure("timeout: login page unreachable: Page.goto failed")
+    assert is_infra_failure("net::ERR_CONNECTION_RESET")
+    assert not is_infra_failure("timeout: CONFIRMAR click timed out")
+    assert not is_infra_failure("timeout: FINALIZAR never visible")
+    assert not is_infra_failure("")
+    assert not is_infra_failure("no room free for 08:00-10:00")

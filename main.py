@@ -129,13 +129,37 @@ def configure_logging(debug: bool) -> None:
 # --------------------------------------------------------------------------
 # Portal interaction
 # --------------------------------------------------------------------------
+def is_infra_failure(detail: str) -> bool:
+    """True when the detail looks like runner network trouble, not a bad account.
+
+    A single goto timeout must not consume the whole account pool. Callers use
+    this to abort the day fast instead of retrying the same unreachable portal
+    with every remaining account.
+    """
+    text = (detail or "").lower()
+    markers = ("page.goto", "net::", "err_connection", "err_timed_out", "econnreset")
+    return any(marker in text for marker in markers)
+
+
 def login(page: Page, username: str, password: str) -> None:
     """Fill the login form and wait until the home calendar is interactive.
 
     The login page itself contains the word "Bienvenido", so the reliable
-    success marker is the home only navigation link.
+    success marker is the home only navigation link. The portal is reachable
+    locally but GitHub runners see occasional egress timeouts, so goto gets
+    two extra tries before the block is marked as infra trouble.
     """
-    page.goto(config.LOGIN_URL, wait_until="domcontentloaded")
+    last_error: Exception | None = None
+    for attempt in range(3):
+        try:
+            page.goto(config.LOGIN_URL, wait_until="domcontentloaded")
+            break
+        except PlaywrightTimeoutError as exc:
+            last_error = exc
+            logger.warning("Login goto attempt %d failed: %s", attempt + 1, short_timeout(exc))
+            page.wait_for_timeout(1000)
+    else:
+        raise PlaywrightTimeoutError(f"login page unreachable: {short_timeout(last_error)}")
     page.wait_for_selector("#username", timeout=DEFAULT_TIMEOUT_MS)
     page.fill("#username", username)
     page.fill("#password", password)
@@ -398,7 +422,11 @@ def capture_confirmation(
     try:
         finalize.wait_for(state="visible", timeout=DEFAULT_TIMEOUT_MS)
     except PlaywrightTimeoutError as exc:
-        raise PlaywrightTimeoutError(f"FINALIZAR never visible: {short_timeout(exc)}")
+        raise PlaywrightTimeoutError(f"FINALIZAR never visible: {short_timeout(exc)}") from exc
+    try:
+        finalize.scroll_into_view_if_needed(timeout=DEFAULT_TIMEOUT_MS)
+    except PlaywrightTimeoutError:
+        pass
     try:
         finalize.click(timeout=DEFAULT_TIMEOUT_MS)
     except PlaywrightTimeoutError:
@@ -406,15 +434,24 @@ def capture_confirmation(
         try:
             finalize.click(timeout=DEFAULT_TIMEOUT_MS, force=True)
         except PlaywrightTimeoutError as exc:
-            raise PlaywrightTimeoutError(f"FINALIZAR click timed out: {short_timeout(exc)}")
+            msg = f"FINALIZAR click timed out: {short_timeout(exc)}"
+            raise PlaywrightTimeoutError(msg) from exc
 
     logger.info("Block %s-%s: waiting for the portal dialog", start, end)
+    confirmation = page.get_by_role("dialog").filter(
+        has_text=re.compile(r"Confirmaci.n de nueva reserva|No es posible continuar", re.IGNORECASE)
+    )
     try:
-        page.wait_for_selector("[role='dialog']", timeout=DEFAULT_TIMEOUT_MS)
-    except PlaywrightTimeoutError as exc:
-        raise PlaywrightTimeoutError(f"no dialog after FINALIZAR: {short_timeout(exc)}")
-
-    dialog = page.locator("[role='dialog']").first
+        confirmation.wait_for(state="visible", timeout=DEFAULT_TIMEOUT_MS)
+    except PlaywrightTimeoutError:
+        try:
+            page.wait_for_selector("[role='dialog']", timeout=DEFAULT_TIMEOUT_MS)
+        except PlaywrightTimeoutError as exc:
+            msg = f"no dialog after FINALIZAR: {short_timeout(exc)}"
+            raise PlaywrightTimeoutError(msg) from exc
+        dialog = page.locator("[role='dialog']").first
+    else:
+        dialog = confirmation.first
     dialog_text = dialog.inner_text()
     if re.search(r"No es posible continuar", dialog_text, re.IGNORECASE):
         reason = " ".join(dialog_text.split())
@@ -428,9 +465,22 @@ def capture_confirmation(
     logger.info("Block %s-%s: clicking CONFIRMAR", start, end)
     confirm = dialog.get_by_role("button", name="CONFIRMAR", exact=True)
     try:
-        confirm.click(timeout=DEFAULT_TIMEOUT_MS)
+        confirm.wait_for(state="visible", timeout=DEFAULT_TIMEOUT_MS)
     except PlaywrightTimeoutError as exc:
-        raise PlaywrightTimeoutError(f"CONFIRMAR click timed out: {short_timeout(exc)}")
+        raise PlaywrightTimeoutError(f"CONFIRMAR never visible: {short_timeout(exc)}") from exc
+    try:
+        confirm.scroll_into_view_if_needed(timeout=DEFAULT_TIMEOUT_MS)
+    except PlaywrightTimeoutError:
+        pass
+    try:
+        confirm.click(timeout=DEFAULT_TIMEOUT_MS)
+    except PlaywrightTimeoutError:
+        logger.warning("Block %s-%s: CONFIRMAR blocked, retrying forced click", start, end)
+        try:
+            confirm.click(timeout=DEFAULT_TIMEOUT_MS, force=True)
+        except PlaywrightTimeoutError as exc:
+            msg = f"CONFIRMAR click timed out: {short_timeout(exc)}"
+            raise PlaywrightTimeoutError(msg) from exc
 
     # Booking confirmation and PDF delivery are independent outcomes.
     page.wait_for_function(
@@ -571,14 +621,18 @@ def run_block(
         save_failure_shot(page, label)
         return result
     except PlaywrightTimeoutError as exc:
-        result["detail"] = f"timeout: {short_timeout(exc)}"
+        detail = f"timeout: {short_timeout(exc)}"
         save_failure_shot(page, label)
         logger.warning(
             "Block %s failed with %s: %s",
             f"{start}-{end}",
             mask_username(account.username),
-            result["detail"],
+            detail,
         )
+        if is_infra_failure(detail):
+            result.update(status="infra-failure", detail=detail)
+        else:
+            result["detail"] = detail
         return result
     except Exception as exc:  # noqa: BLE001 - one block must not abort the day
         result["detail"] = str(exc).splitlines()[0]
@@ -621,6 +675,9 @@ def run_day(
             result = run_block(browser, account, target_date, start, end, dry_run)
             if "not selectable" in result.get("detail", ""):
                 break  # date-wide problem, another account cannot fix it
+            if result.get("status") == "infra-failure":
+                pool.insert(0, account)  # network trouble, keep the account
+                break
             if result["status"] == "unavailable":
                 pool.insert(0, account)  # nothing booked, keep the account
                 break
@@ -639,6 +696,21 @@ def run_day(
                 "detail": "no account left for this block",
             }
         results.append(result)
+
+        if result.get("status") == "infra-failure":
+            logger.warning("Portal unreachable, skipping the rest of the day")
+            for rest_start, rest_end in pending:
+                results.append(
+                    {
+                        "start": rest_start,
+                        "end": rest_end,
+                        "account": "",
+                        "room": "",
+                        "status": "skipped",
+                        "detail": f"portal unreachable, skipped {rest_start}-{rest_end}",
+                    }
+                )
+            break
 
         if "not selectable" in result.get("detail", ""):
             # Every block shares the date, so retrying it is pure waste.
@@ -738,7 +810,8 @@ def main(argv: list[str] | None = None) -> int:
     failed = [
         item
         for item in results
-        if item["status"] in {"failed", "unconfirmed", "no-account", "account-limit"}
+        if item["status"]
+        in {"failed", "unconfirmed", "no-account", "account-limit", "infra-failure"}
     ]
     if failed:
         logger.error("%d block(s) failed", len(failed))

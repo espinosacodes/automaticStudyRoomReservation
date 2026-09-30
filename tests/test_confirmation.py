@@ -41,6 +41,9 @@ def test_pdf_has_content_rejects_blank_receipts(tmp_path):
 def test_capture_fetches_official_pdf_after_confirm(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     page = MagicMock()
+    page.get_by_role.return_value.filter.return_value.first.inner_text.return_value = (
+        "Confirmacion de nueva reserva"
+    )
 
     def fake_fetch(page_arg, **kwargs):
         out = kwargs["out"]
@@ -61,14 +64,20 @@ def test_capture_fetches_official_pdf_after_confirm(tmp_path, monkeypatch):
     )
     assert result == "bookings/confirmation_2026-09-28_0800-1000.pdf"
     assert (tmp_path / result).exists()
-    page.get_by_role.return_value.click.assert_called_with()
-    assert page.get_by_role.return_value.click.call_count == 2  # FINALIZAR and CONFIRMAR
+    finalize = page.get_by_role.return_value
+    dialog = page.get_by_role.return_value.filter.return_value.first
+    confirm = dialog.get_by_role.return_value
+    finalize.click.assert_called_once_with(timeout=15000)
+    confirm.click.assert_called_once_with(timeout=15000)
     page.wait_for_function.assert_called_once()
 
 
 def test_missing_receipt_does_not_confirm_twice(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     page = MagicMock()
+    page.get_by_role.return_value.filter.return_value.first.inner_text.return_value = (
+        "Confirmacion de nueva reserva"
+    )
 
     def fake_fetch(page_arg, **kwargs):
         raise PlaywrightTimeoutError("No download")
@@ -85,7 +94,11 @@ def test_missing_receipt_does_not_confirm_twice(tmp_path, monkeypatch):
         label="2026-09-28_0800-1000",
     )
     assert result == ""
-    assert page.get_by_role.return_value.click.call_count == 2
+    finalize = page.get_by_role.return_value
+    dialog = page.get_by_role.return_value.filter.return_value.first
+    confirm = dialog.get_by_role.return_value
+    finalize.click.assert_called_once_with(timeout=15000)
+    confirm.click.assert_called_once_with(timeout=15000)
     page.wait_for_function.assert_called_once()
 
 
