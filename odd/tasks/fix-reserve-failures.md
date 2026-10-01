@@ -35,6 +35,7 @@ The 23:59 Bogota cron must book the next weekday before others take the rooms. E
 - [x] T6 Verify with dry run friendly check and report per task proof, plus note on the missing 6th account.
 - [x] T7 Keep 5 accounts covering 08:00 to 18:00, drop the 18:00 to 20:00 block from defaults, override, and tests.
 - [x] T8 Fix date picker day duplicates by preferring the visible enabled gridcell, so Oct 1 style dates book.
+- [x] T9 Sync docs and web copy to five blocks 08:00 to 18:00, including capacity 5 and diagram blocks.
 
 ## Acceptance criteria
 - Confirmation dialog is located by `Confirmacion de nueva reserva` text or CONFIRMAR button scope, never by first dialog index.
@@ -58,8 +59,9 @@ The 23:59 Bogota cron must book the next weekday before others take the rooms. E
 ## Verification evidence
 - `.venv/bin/python -m pytest -q`: 23 passed.
 - `.venv/bin/python -m ruff check .`: All checks passed.
-- `.venv/bin/python -m ruff format --check .`: 22 files already formatted.
-- `.venv/bin/python main.py --help`: prints usage, no network needed.
+- `pnpm --filter web typecheck`: clean.
+- `pnpm --filter web build`: success, 779ms.
+- `split_into_blocks(date(2026,10,1))`: five blocks 08:00 to 18:00, matching 5 accounts.
 - Cron `59 4 * * *` is 23:59 Bogota (UTC-5), which matches the requested 11:59pm slot opening. No cron change needed.
 - Engram mirror: pending, project not registered in store, local file is source of truth.
 

@@ -1,6 +1,6 @@
 # AGENTS.md — automaticStudyRoomReservation
 
-> Repo: `automaticStudyRoomReservation`. Automates daily library room booking at `https://banner9.icesi.edu.co/ic_reservas` for a quiet 10 person work room, 08:00 to 20:00 Mon to Fri, with Playwright. Optional status page on `reservation.getcuria.us`.
+> Repo: `automaticStudyRoomReservation`. Automates daily library room booking at `https://banner9.icesi.edu.co/ic_reservas` for a quiet 10 person work room, 08:00 to 18:00 Mon to Fri, with Playwright. Optional status page on `reservation.getcuria.us`.
 
 ## Stack and commands
 
@@ -29,7 +29,7 @@
 ## Project structure
 
 ```
-main.py                 # Playwright entry: login -> addReserve -> submit (6 blocks, 2h each)
+main.py                 # Playwright entry: login -> addReserve -> submit (5 blocks, 2h each)
 core/
   config.py             # env + reservationTime.json loading
   reservation.py        # pure date/time helpers + split_into_blocks (unit-tested)
@@ -90,13 +90,13 @@ Or use `credentials.json`:
 { "username": "1111542730", "password": "your_password" }
 ```
 
-And `reservationTime.json` (optional override, otherwise 08:00 to 20:00 split into 6 blocks is auto-generated):
+And `reservationTime.json` (optional override, otherwise 08:00 to 18:00 split into 5 blocks is auto-generated):
 
 ```json
 [{ "day": "Monday", "startTime": "08:00", "endTime": "10:00" }]
 ```
 
-GitHub Actions secrets: `BANNER_USERS_JSON` (required for 6 blocks), optionally `BANNER_USERNAME` / `BANNER_PASSWORD` for single block fallback. See `docs/ARCHITECTURE.md`.
+GitHub Actions secrets: `BANNER_USERS_JSON` (required for 5 blocks), optionally `BANNER_USERNAME` / `BANNER_PASSWORD` for single block fallback. See `docs/ARCHITECTURE.md`.
 
 ## References
 

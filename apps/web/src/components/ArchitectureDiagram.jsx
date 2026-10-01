@@ -1,7 +1,7 @@
 /**
  * Architecture of the system as an infrastructure flow, following the
  * reference diagram: users on the left, compute, a dashed routes box listing
- * the six blocks, the dispatch namespace, a Data & Storage column, the
+ * the five blocks, the dispatch namespace, a Data & Storage column, the
  * coordinator, and a browser mock showing this page on the right.
  * Dashed gray connectors run left to right; each column has its own accent.
  */
@@ -12,7 +12,6 @@ const STANDARD_BLOCKS = [
   { start: '12:00', room: '204BI' },
   { start: '14:00', room: '204BI' },
   { start: '16:00', room: '204BI' },
-  { start: '18:00', room: '204BI' },
 ]
 
 function shortRoom(room) {

@@ -15,9 +15,9 @@ WhatsApp context (Valance group, 2026-09-21 to 2026-09-23):
 
 ## 2. Goals
 
-- Reserve the 10 person library room automatically every night at 23:59 America/Bogota, covering 08:00 to 20:00 Monday to Friday, so the team has a quiet work room all day.
+- Reserve the 10 person library room automatically every night at 23:59 America/Bogota, covering 08:00 to 18:00 Monday to Friday, so the team has a quiet work room all day.
 - Run unattended for the whole semester. No manual login.
-- Work around the portal restriction of 2 hours per booking per user by distributing consecutive 2 hour blocks across multiple Banner accounts (08:00-10:00, 10:00-12:00, 12:00-14:00, 14:00-16:00, 16:00-18:00, 18:00-20:00). Each block uses a different account from the rotation pool.
+- Work around the portal restriction of 2 hours per booking per user by distributing consecutive 2 hour blocks across multiple Banner accounts (08:00-10:00, 10:00-12:00, 12:00-14:00, 14:00-16:00, 16:00-18:00). Each block uses a different account from the rotation pool.
 - Reduce contention and rate limit risk by rotating accounts on failure.
 - Visible result: screenshots and log, optional tiny status page.
 
@@ -30,10 +30,10 @@ WhatsApp context (Valance group, 2026-09-21 to 2026-09-23):
 
 ## 4. Users and inputs
 
-- Single operator (Santiago) configures the cron. Friends contribute their Banner credentials for rotation to cover the 6 daily blocks.
+- Single operator (Santiago) configures the cron. Friends contribute their Banner credentials for rotation to cover the 5 daily blocks.
 - Inputs per reservation:
-  - `BANNER_USERS_JSON` (GitHub Secret) as JSON array of `{ username, password }` with at least 6 entries for the 08:00 to 20:00 coverage. Fallback local is `credentials.json` or env `BANNER_USERNAME` / `BANNER_PASSWORD` for single block dry runs.
-  - `reservationTime.json`: committed example array of 2 hour blocks, e.g. `[{ "day": "Monday", "startTime": "08:00", "endTime": "10:00" }, { "day": "Monday", "startTime": "10:00", "endTime": "12:00" }, ...]`. In practice the script generates the 6 blocks for the next weekday automatically, so this file is only an override.
+  - `BANNER_USERS_JSON` (GitHub Secret) as JSON array of `{ username, password }` with at least 5 entries for the 08:00 to 18:00 coverage. Fallback local is `credentials.json` or env `BANNER_USERNAME` / `BANNER_PASSWORD` for single block dry runs.
+  - `reservationTime.json`: committed example array of 2 hour blocks, e.g. `[{ "day": "Monday", "startTime": "08:00", "endTime": "10:00" }, { "day": "Monday", "startTime": "10:00", "endTime": "12:00" }, ...]`. In practice the script generates the 5 blocks for the next weekday automatically, so this file is only an override.
   - `RESERVATION_ROOM` optional: label or code of the 10 person room. With `RESERVATION_PEOPLE=10` the portal offers `Sala de estudio 204BI` and that is picked automatically; set this only to require a specific room. Env override `RESERVATION_PEOPLE` (default `10`) drives which rooms appear.
   - `RESERVATION_ACTIVITY` (default `Reunión`). The portal offers Capacitación, Examen, Examen final, Examen multitudinario, Práctica de Laboratorio, Reunión, Seminario, Taller. It has no "Study Session".
 
@@ -48,11 +48,11 @@ WhatsApp context (Valance group, 2026-09-21 to 2026-09-23):
 
 ### 5.2 Compute next reservation date and split into 2 hour blocks
 
-Reuse one helper: `core/reservation.py:get_next_reservation_date` plus a new pure helper `core/reservation.py:split_into_blocks(date, start="08:00", end="20:00", block_hours=2)`.
+Reuse one helper: `core/reservation.py:get_next_reservation_date` plus a new pure helper `core/reservation.py:split_into_blocks(date, start="08:00", end="18:00", block_hours=2)`.
 
 - Map `Monday` to `Sunday` to 0 to 6.
 - Compute the target day with `get_next_reservation_date`: tomorrow, or the day after, skipping Saturday and Sunday by team choice. Measured live, the portal picker enables at most 2 days out (a Monday 3 days out is refused), so on Friday nights there is no bookable day and the run exits 0. No weekend bookings.
-- For the target date `YYYY-MM-DD`, split `08:00` to `20:00` into six 2 hour blocks: `08:00-10:00`, `10:00-12:00`, `12:00-14:00`, `14:00-16:00`, `16:00-18:00`, `18:00-20:00`.
+- For the target date `YYYY-MM-DD`, split `08:00` to `18:00` into five 2 hour blocks: `08:00-10:00`, `10:00-12:00`, `12:00-14:00`, `14:00-16:00`, `16:00-18:00`.
 - Return `[(date, start, end), ...]` list. The caller assigns each block to the next credential in `BANNER_USERS_JSON` in order, so the 2 hour per user limit is respected.
 - Both helpers are pure, unit-tested, no Playwright dependency.
 
@@ -91,7 +91,7 @@ python main.py [--headed] [--dry-run] [--debug]
 - Concurrency group `reserve` with `cancel-in-progress: false`.
 - The job exits 0 without booking when no weekday sits inside the portal's +2 day picker window (Friday nights). A date the picker refuses aborts the rest of the day as skipped instead of burning accounts on retries.
 - Upload `before_submit_*.png` and `after_submit_*.png` as artifact, always.
-- One cron covers all 6 blocks. No per-block schedule. The script loops the 6 blocks internally, rotating credentials.
+- One cron covers all 5 blocks. No per-block schedule. The script loops the 5 blocks internally, rotating credentials.
 
 ## 6. Security
 
@@ -120,7 +120,7 @@ Only if you approve after v1 automation works.
 
 ## 9. Portal constraints captured
 
-- Each user can book only one 2 hour block per day (confirmed live on 2026-09-24). Six blocks therefore need six distinct accounts, and the automation never reuses an account within a run. An account is only consumed when its block actually books, so an unavailable block frees it for a later block.
+- Each user can book only one 2 hour block per day (confirmed live on 2026-09-24). Five blocks therefore need five distinct accounts, and the automation never reuses an account within a run. An account is only consumed when its block actually books, so an unavailable block frees it for a later block.
 - Confirmed room label: `Sala de estudio 204BI [Capacidad espacio: 10]` (code `204BI`), offered when `Número de personas` is 10.
 - The `addReserve` route is a two step Material UI wizard (requester info, then the reservation form) and must be opened by clicking the `AGREGAR RESERVA` card so the in-memory session survives. Verified against the live portal on 2026-09-24.
 - Activity options are academic Spanish labels; there is no "Study Session", so `Reunión` is the default.

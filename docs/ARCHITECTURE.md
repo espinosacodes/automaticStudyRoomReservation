@@ -30,8 +30,8 @@ developer -> python main.py --headed --dry-run -> screenshots
 
 ## Data flow
 
-1. Load credentials: parse `BANNER_USERS_JSON` (need 6 entries for 08:00 to 20:00). Fallback to single `BANNER_USERNAME`/`BANNER_PASSWORD` or `credentials.json` for dry run. Mask in logs.
-2. Compute next weekday. Skip Saturday and Sunday to Monday. Split `08:00` to `20:00` into six 2 hour blocks via `split_into_blocks`. If `reservationTime.json` is present it overrides the auto split.
+1. Load credentials: parse `BANNER_USERS_JSON` (need 5 entries for 08:00 to 18:00). Fallback to single `BANNER_USERNAME`/`BANNER_PASSWORD` or `credentials.json` for dry run. Mask in logs.
+2. Compute next weekday. Skip Saturday and Sunday to Monday. Split `08:00` to `18:00` into five 2 hour blocks via `split_into_blocks`. If `reservationTime.json` is present it overrides the auto split.
 3. For each `(date, start, end, credential)` in order: `browser.new_context()` -> `page.goto(login)` -> fill and submit -> wait for `Bienvenido` -> `page.click(AGREGAR RESERVA)` -> fill `addReserve` form with that block and `RESERVATION_ROOM` -> screenshot before and after -> assert -> close context. Continue on single block failure.
 
 ## Secrets
