@@ -2,8 +2,10 @@ name: reserve
 
 on:
   schedule:
-    # 23:59 America/Bogota (UTC-5, no DST) when the next day's slots open.
-    - cron: "59 4 * * *"
+    # Overnight America/Bogota (UTC-5, no DST): 23:59, 01:59, 03:59, when the
+    # next day's slots open. GitHub delays scheduled ticks by hours, so the
+    # repeated runs retry failed blocks instead of waiting a full day.
+    - cron: "59 4,6,8 * * *"
   workflow_dispatch:
     inputs:
       dry_run:

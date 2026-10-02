@@ -35,7 +35,7 @@ core/
   reservation.py        # pure date/time helpers + split_into_blocks (unit-tested)
   browser.py            # Playwright browser factory
 .github/workflows/
-  reserve.yml           # cron at 23:59 America/Bogota
+  reserve.yml           # crons every 2h overnight America/Bogota (23:59, 01:59, 03:59)
 docs/
   SPEC.md               # functional spec (source of truth for behavior)
   ARCHITECTURE.md       # infra + deployment
