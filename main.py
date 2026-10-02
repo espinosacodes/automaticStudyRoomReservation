@@ -338,6 +338,17 @@ def rank_rooms(labels: list[str], preferred: str, people: str) -> list[str]:
     return sorted(labels, key=key)
 
 
+def people_fallback_counts(people: str) -> list[str]:
+    """People counts to try, from requested down to 1.
+
+    The portal filters rooms by headcount, so when nothing is free for 10 the
+    run retries with 9, 8, and so on. Any room beats a lost block.
+    """
+    if str(people).isdigit() and int(people) > 1:
+        return [str(n) for n in range(int(people), 0, -1)]
+    return [str(people)]
+
+
 def list_room_options(page: Page) -> list[str]:
     """Return the room labels currently offered by the Espacio fisico select."""
     options = _open_menu_options(page, "place")
@@ -374,20 +385,27 @@ def fill_reservation(
     # People count drives which rooms are offered, so it must be set before the
     # room list is fetched. Wait for the portal's own availability call so the
     # menu below reads fresh data instead of racing it. If no fresh call fires
-    # (value unchanged), fall back to a short settle.
-    try:
-        with page.expect_response(re.compile(r"availableByUser"), timeout=8000):
-            selected_people = select_option(page, "peopleQuantity", people, exact=True)
-    except PlaywrightTimeoutError:
-        selected_people = select_option(page, "peopleQuantity", people, exact=True)
-        page.wait_for_timeout(1200)
+    # (value unchanged), fall back to a short settle. When nothing is free for
+    # the requested headcount, walk down to 1: any room beats a lost block.
+    available: list[str] = []
+    selected_people = ""
+    for count in people_fallback_counts(people):
+        try:
+            with page.expect_response(re.compile(r"availableByUser"), timeout=8000):
+                selected_people = select_option(page, "peopleQuantity", count, exact=True)
+        except PlaywrightTimeoutError:
+            selected_people = select_option(page, "peopleQuantity", count, exact=True)
+            page.wait_for_timeout(1200)
+        available = list_room_options(page)
+        if available:
+            break
+        logger.info("No rooms for %s people, trying fewer", count)
     logger.info("People: %s", selected_people)
 
-    available = list_room_options(page)
     if not available:
         raise RoomUnavailable(f"no room free for {start}-{end}")
 
-    ranked = rank_rooms(available, room, people)
+    ranked = rank_rooms(available, room, selected_people)
     wanted = ranked[0]
     selected_room = select_option(page, "place", wanted)
     if not selected_room:

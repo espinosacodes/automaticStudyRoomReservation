@@ -112,3 +112,11 @@ def test_is_infra_failure_marks_network_trouble_only():
     assert not is_infra_failure("timeout: FINALIZAR never visible")
     assert not is_infra_failure("")
     assert not is_infra_failure("no room free for 08:00-10:00")
+
+
+def test_people_fallback_counts_walk_down_to_one():
+    from main import people_fallback_counts
+
+    assert people_fallback_counts("10") == ["10", "9", "8", "7", "6", "5", "4", "3", "2", "1"]
+    assert people_fallback_counts("1") == ["1"]
+    assert people_fallback_counts("") == [""]
