@@ -82,6 +82,10 @@ class AccountLimit(Exception):
     """The portal refused the booking for this account (e.g. 2h daily max)."""
 
 
+class InvalidCredentials(Exception):
+    """The portal rejected the username or password at login."""
+
+
 def short_timeout(exc: Exception) -> str:
     """Condense a Playwright timeout to one line, keeping the waited locator.
 
@@ -164,7 +168,20 @@ def login(page: Page, username: str, password: str) -> None:
     page.fill("#username", username)
     page.fill("#password", password)
     page.click("button[type='submit']")
-    page.wait_for_selector("a[href='/ic_reservas/addReserve']", timeout=DEFAULT_TIMEOUT_MS)
+    try:
+        page.wait_for_selector("a[href='/ic_reservas/addReserve']", timeout=DEFAULT_TIMEOUT_MS)
+    except PlaywrightTimeoutError:
+        # A bare timeout hides the portal's own verdict, so check for its
+        # rejection dialog first and fail fast with a clear reason.
+        dialog = page.locator("[role='dialog']").first
+        if dialog.count():
+            text = dialog.inner_text()
+            if re.search(r"contrase\w*.*inv\w*lid|invalid credentials", text, re.IGNORECASE):
+                dismiss = dialog.get_by_role("button", name="OK", exact=True)
+                if dismiss.count():
+                    dismiss.click()
+                raise InvalidCredentials("portal rejected username or password")
+        raise
 
 
 def open_add_reserve(page: Page) -> None:
@@ -631,6 +648,10 @@ def run_block(
         result.update(status="account-limit", detail=str(exc))
         save_failure_shot(page, label)
         return result
+    except InvalidCredentials as exc:
+        logger.warning("Block %s bad credentials: %s", f"{start}-{end}", exc)
+        result.update(status="bad-credentials", detail=str(exc))
+        return result
     except PlaywrightTimeoutError as exc:
         detail = f"timeout: {short_timeout(exc)}"
         save_failure_shot(page, label)
@@ -822,7 +843,7 @@ def main(argv: list[str] | None = None) -> int:
         item
         for item in results
         if item["status"]
-        in {"failed", "unconfirmed", "no-account", "account-limit", "infra-failure"}
+        in {"failed", "unconfirmed", "no-account", "account-limit", "bad-credentials", "infra-failure"}
     ]
     if failed:
         logger.error("%d block(s) failed", len(failed))
