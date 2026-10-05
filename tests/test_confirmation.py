@@ -64,9 +64,10 @@ def test_capture_fetches_official_pdf_after_confirm(tmp_path, monkeypatch):
     )
     assert result == "bookings/confirmation_2026-09-28_0800-1000.pdf"
     assert (tmp_path / result).exists()
-    button = page.get_by_role.return_value
-    assert button.click.call_count == 2
-    button.click.assert_called_with(timeout=15000)
+    finalize = page.get_by_role.return_value
+    confirm = page.locator.return_value
+    finalize.click.assert_called_once_with(timeout=15000)
+    confirm.click.assert_called_once_with(timeout=15000)
     page.wait_for_function.assert_called_once()
 
 
@@ -92,9 +93,10 @@ def test_missing_receipt_does_not_confirm_twice(tmp_path, monkeypatch):
         label="2026-09-28_0800-1000",
     )
     assert result == ""
-    button = page.get_by_role.return_value
-    assert button.click.call_count == 2
-    button.click.assert_called_with(timeout=15000)
+    finalize = page.get_by_role.return_value
+    confirm = page.locator.return_value
+    finalize.click.assert_called_once_with(timeout=15000)
+    confirm.click.assert_called_once_with(timeout=15000)
     page.wait_for_function.assert_called_once()
 
 

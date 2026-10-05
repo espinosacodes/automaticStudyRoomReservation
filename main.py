@@ -176,15 +176,14 @@ def login(page: Page, username: str, password: str) -> None:
         page.wait_for_selector("a[href='/ic_reservas/addReserve']", timeout=DEFAULT_TIMEOUT_MS)
     except PlaywrightTimeoutError:
         # A bare timeout hides the portal's own verdict, so check for its
-        # rejection dialog first and fail fast with a clear reason.
-        dialog = page.locator("[role='dialog']").first
-        if dialog.count():
-            text = dialog.inner_text()
-            if re.search(r"contrase\w*.*inv\w*lid|invalid credentials", text, re.IGNORECASE):
-                dismiss = dialog.get_by_role("button", name="OK", exact=True)
-                if dismiss.count():
-                    dismiss.click()
-                raise InvalidCredentials("portal rejected username or password")
+        # rejection dialog first and fail fast with a clear reason. Text
+        # lookup: the portal modals render without an accessible dialog role.
+        body_text = page.locator("body").inner_text()
+        if re.search(r"contrase\w*.*inv\w*lid|invalid credentials", body_text, re.IGNORECASE):
+            dismiss = page.locator("button", has_text=re.compile(r"^\s*OK\s*$"))
+            if dismiss.count():
+                dismiss.first.click()
+            raise InvalidCredentials("portal rejected username or password")
         raise
 
 
@@ -491,21 +490,23 @@ def capture_confirmation(
             raise PlaywrightTimeoutError(msg) from exc
 
     logger.info("Block %s-%s: clicking CONFIRMAR", start, end)
-    confirm = page.get_by_role("button", name="CONFIRMAR", exact=True)
+    # Text lookup, not role lookup: the portal modals render without an
+    # accessible dialog role, so get_by_role never resolves their buttons
+    # even though they are plainly visible on screen.
+    confirm = page.locator("button", has_text=re.compile(r"^\s*CONFIRMAR\s*$", re.IGNORECASE))
     try:
         confirm.wait_for(state="visible", timeout=CONFIRM_TIMEOUT_MS)
     except PlaywrightTimeoutError as exc:
         # The button never appeared, so the portal may have refused instead.
-        # Its modals are plain divs without role="dialog", so read the page
-        # text for the verdict before reporting a bare timeout.
+        # Read the page text for its verdict before reporting a bare timeout.
         body_text = page.locator("body").inner_text()
         refused = re.search(r"No es posible continuar[\s\S]{0,300}", body_text, re.IGNORECASE)
         if refused:
             reason = " ".join(refused.group(0).split())
             logger.warning("Block %s-%s refused by portal: %s", start, end, reason)
-            dismiss = page.get_by_role("button", name="OK", exact=True)
+            dismiss = page.locator("button", has_text=re.compile(r"^\s*OK\s*$"))
             if dismiss.count():
-                dismiss.click()
+                dismiss.first.click()
                 page.wait_for_timeout(400)
             raise AccountLimit(f"portal refused: {reason[:200]}")
         raise PlaywrightTimeoutError(f"CONFIRMAR never visible: {short_timeout(exc)}") from exc
