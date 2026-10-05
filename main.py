@@ -124,6 +124,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--headed", action="store_true", help="show the browser window")
     parser.add_argument("--dry-run", action="store_true", help="fill the form but never submit")
     parser.add_argument("--debug", action="store_true", help="verbose logging")
+    parser.add_argument(
+        "--target-date",
+        default=os.getenv("RESERVATION_DATE") or None,
+        help="weekday to reserve in YYYY-MM-DD format, within the next two days",
+    )
     return parser.parse_args(argv)
 
 
@@ -687,9 +692,15 @@ def run_block(
         return result
     finally:
         if submission_started and result["status"] != "success":
+            submission_error = result.get("detail", "").strip()
             result.update(
                 status="unconfirmed",
-                detail="Submission needs portal verification. Automatic retry stopped.",
+                detail=(
+                    "Submission needs portal verification. Automatic retry stopped. "
+                    f"Last error: {submission_error}"
+                    if submission_error
+                    else "Submission needs portal verification. Automatic retry stopped."
+                ),
             )
         context.close()
 
@@ -806,7 +817,11 @@ def main(argv: list[str] | None = None) -> int:
 
     started_at = now_bogota()
     accounts = config.load_accounts()
-    target_date = get_next_reservation_date()
+    try:
+        target_date = get_next_reservation_date(requested_date=args.target_date)
+    except ValueError as exc:
+        logger.error("Invalid reservation date: %s", exc)
+        return 2
     if target_date is None:
         logger.info(
             "No bookable weekday inside the portal window. "

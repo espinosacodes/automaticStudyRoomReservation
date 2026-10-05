@@ -2,16 +2,19 @@ name: reserve
 
 on:
   schedule:
-    # Overnight America/Bogota (UTC-5, no DST): 23:59, 01:59, 03:59, when the
-    # next day's slots open. GitHub delays scheduled ticks by hours, so the
-    # repeated runs retry failed blocks instead of waiting a full day.
-    - cron: "59 4,6,8 * * *"
+    # Hourly from 11:59 through 17:59 America/Bogota (UTC-5, no DST). GitHub
+    # delays scheduled ticks, so repeated runs retry failed blocks.
+    - cron: "59 16-22 * * *"
   workflow_dispatch:
     inputs:
       dry_run:
         description: Fill the form but do not submit
         type: boolean
         default: false
+      reservation_date:
+        description: Optional weekday in YYYY-MM-DD format, within the next two days
+        type: string
+        required: false
 
 concurrency:
   group: reserve
@@ -37,10 +40,14 @@ jobs:
         env:
           STATUS_READ_TOKEN: ${{ secrets.STATUS_READ_TOKEN }}
         run: |
-          curl -fsS --max-time 30 \
+          if [ -n "$STATUS_READ_TOKEN" ] && curl -fsS --max-time 30 \
             -H "Authorization: Bearer $STATUS_READ_TOKEN" \
-            https://reservation.getcuria.us/status.json -o status.json
-
+            https://reservation.getcuria.us/status.json -o status.json; then
+            echo "Previous reservation status restored."
+          else
+            echo "Previous status unavailable; starting a fresh status file."
+            printf '{"runs":[]}\n' > status.json
+          fi
 
       - name: Run reservations
         id: run
@@ -52,6 +59,7 @@ jobs:
           RESERVATION_ROOM: ${{ vars.RESERVATION_ROOM }}
           RESERVATION_ACTIVITY: ${{ vars.RESERVATION_ACTIVITY }}
           RESERVATION_PEOPLE: ${{ vars.RESERVATION_PEOPLE }}
+          RESERVATION_DATE: ${{ inputs.reservation_date }}
         run: python main.py ${{ inputs.dry_run && '--dry-run' || '' }}
 
       - uses: pnpm/action-setup@v4

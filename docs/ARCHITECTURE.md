@@ -5,7 +5,7 @@
 ## Overview
 
 ```
-GitHub Actions (cron 23:59 Bogota)
+GitHub Actions (cron starts at 11:59 Bogota, retries hourly)
   -> checkout -> setup-python -> pip install -> playwright install chromium
   -> python main.py (env secrets)
   -> screenshots artifact + log
@@ -49,7 +49,7 @@ developer -> python main.py --headed --dry-run -> screenshots
 
 ```yaml
 on:
-  schedule: [{ cron: '59 4 * * *' }]  # 23:59 America/Bogota = 04:59 UTC
+  schedule: [{ cron: '59 16-22 * * *' }]  # 11:59 through 17:59 America/Bogota
   workflow_dispatch:
 concurrency: { group: reserve, cancel-in-progress: false }
 jobs:
@@ -70,7 +70,7 @@ jobs:
         with: { name: screenshots, path: "*.png" }
 ```
 
-Timezone note: GitHub cron is UTC only. Use `59 4 * * *` for 23:59 Bogota (UTC-5, no DST). Verify around DST edge if university changes window.
+Timezone note: GitHub cron is UTC only. Bogota is UTC-5 with no DST, so `59 16-22 * * *` starts at 11:59 Bogota and retries hourly through 17:59.
 
 ### Cloudflare (status page only)
 

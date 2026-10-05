@@ -76,7 +76,10 @@ export function RunsHistory({ runs, formatStamp, actionsUrl }) {
           </p>
           <ul>
             {(run.blocks ?? []).map((block) => (
-              <li key={`${block.start}-${block.end}`}>
+              <li
+                key={`${block.start}-${block.end}`}
+                title={block.detail || block.status}
+              >
                 <BlockMark status={block.status} />
                 <span className="mono">
                   {block.start} - {block.end}

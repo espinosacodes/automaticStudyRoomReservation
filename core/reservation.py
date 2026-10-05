@@ -55,7 +55,10 @@ def now_bogota() -> datetime:
     return datetime.now(BOGOTA_TZ)
 
 
-def get_next_reservation_date(now: datetime | None = None) -> date | None:
+def get_next_reservation_date(
+    now: datetime | None = None,
+    requested_date: date | str | None = None,
+) -> date | None:
     """Return the day the automation should book, or None when there is none.
 
     Measured against the live portal: a target 2 days out is selectable, but a
@@ -73,6 +76,19 @@ def get_next_reservation_date(now: datetime | None = None) -> date | None:
     moment = moment.astimezone(BOGOTA_TZ)
 
     today = moment.date()
+    if requested_date is not None:
+        target = (
+            date.fromisoformat(requested_date)
+            if isinstance(requested_date, str)
+            else requested_date
+        )
+        days_ahead = (target - today).days
+        if not 1 <= days_ahead <= MAX_DAYS_AHEAD or target.weekday() >= 5:
+            raise ValueError(
+                f"requested date {target} must be a weekday 1 to {MAX_DAYS_AHEAD} days ahead"
+            )
+        return target
+
     for offset in (1, 2):
         candidate = today + timedelta(days=offset)
         if candidate.weekday() < 5:

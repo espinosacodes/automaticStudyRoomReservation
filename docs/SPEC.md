@@ -10,12 +10,12 @@ The workaround is the library study rooms at `https://banner9.icesi.edu.co/ic_re
 
 WhatsApp context (Valance group, 2026-09-21 to 2026-09-23):
 - S Espinosa requested `user y contrasena de https://banner9.icesi.edu.co/ic_reservas` to automate reservations for the whole semester with Playwright.
-- Plan stated: use Playwright headless on a GitHub Action cron at 23:59 which is when the next day slot opens.
+- Plan stated: use Playwright headless on a GitHub Actions cron starting at 11:59 America/Bogota.
 - Credentials shared in chat for 4 accounts (S. Castillo, D. Dulce x2, M. Salazar, S. Espinosa) to enable multi-user rotation. Passwords are not recorded here. All credentials must stay in GitHub Secrets or local `credentials.json` (gitignored), never in the repo.
 
 ## 2. Goals
 
-- Reserve the 10 person library room automatically every night at 23:59 America/Bogota, covering 08:00 to 18:00 Monday to Friday, so the team has a quiet work room all day.
+- Reserve the 10 person library room automatically starting at 11:59 America/Bogota, covering 08:00 to 18:00 Monday to Friday, so the team has a quiet work room all day.
 - Run unattended for the whole semester. No manual login.
 - Work around the portal restriction of 2 hours per booking per user by distributing consecutive 2 hour blocks across multiple Banner accounts (08:00-10:00, 10:00-12:00, 12:00-14:00, 14:00-16:00, 16:00-18:00). Each block uses a different account from the rotation pool.
 - Reduce contention and rate limit risk by rotating accounts on failure.
@@ -87,7 +87,7 @@ python main.py [--headed] [--dry-run] [--debug]
 
 ### 5.5 Scheduling
 
-- GitHub Actions workflow `.github/workflows/reserve.yml` with `cron: '59 4 * * *'` which is 23:59 America/Bogota (04:59 UTC next day). Also `workflow_dispatch` for manual run.
+- GitHub Actions workflow `.github/workflows/reserve.yml` with `cron: '59 16-22 * * *'`, starting at 11:59 America/Bogota (16:59 UTC) and retrying hourly through 17:59. Manual dispatch accepts an optional weekday date within the portal's next two days.
 - Concurrency group `reserve` with `cancel-in-progress: false`.
 - The job exits 0 without booking when no weekday sits inside the portal's +2 day picker window (Friday nights). A date the picker refuses aborts the rest of the day as skipped instead of burning accounts on retries.
 - Upload `before_submit_*.png` and `after_submit_*.png` as artifact, always.
@@ -134,7 +134,7 @@ Only if you approve after v1 automation works.
 1. Approve this spec.
 2. Implement `main.py` + `core/*` in Python + Playwright, replacing archived `studyRoomReservation.py` (Selenium). Keep diff minimal. Include `split_into_blocks` helper and weekend skip.
 3. Add `reserve.yml` and test with `workflow_dispatch` in `--dry-run` mode for one Tuesday.
-4. Run dry for 2 nights, then live with 6 accounts at 23:59 for Wednesday to Friday.
+4. Run dry for 2 nights, then live with 6 accounts starting at 11:59 America/Bogota for Wednesday to Friday.
 5. Decide on status page. If yes, scaffold `apps/web` after step 4.
 
 ## 11. Open questions for approval
