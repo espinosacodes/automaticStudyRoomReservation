@@ -43,6 +43,10 @@ from core.reservation import (
 STATUS_FILE = Path("status.json")
 STATUS_HISTORY = 30
 
+# FINALIZAR runs server side validation before the CONFIRMAR modal appears,
+# which takes far longer than any local render. Every other wait keeps the
+# short default.
+CONFIRM_TIMEOUT_MS = 60_000
 # The portal has no "Study Session" option. "Reunion" (meeting) is the closest
 # fit for a quiet work session and can be overridden with RESERVATION_ACTIVITY.
 ACTIVITY_OPTIONS = [
@@ -489,7 +493,7 @@ def capture_confirmation(
     logger.info("Block %s-%s: clicking CONFIRMAR", start, end)
     confirm = page.get_by_role("button", name="CONFIRMAR", exact=True)
     try:
-        confirm.wait_for(state="visible", timeout=DEFAULT_TIMEOUT_MS)
+        confirm.wait_for(state="visible", timeout=CONFIRM_TIMEOUT_MS)
     except PlaywrightTimeoutError as exc:
         # The button never appeared, so the portal may have refused instead.
         # Its modals are plain divs without role="dialog", so read the page
@@ -522,7 +526,7 @@ def capture_confirmation(
     # Booking confirmation and PDF delivery are independent outcomes.
     page.wait_for_function(
         "() => /registrada con .xito/i.test(document.body.innerText)",
-        timeout=DEFAULT_TIMEOUT_MS,
+        timeout=CONFIRM_TIMEOUT_MS,
     )
 
     out = Path("bookings") / f"confirmation_{label}.pdf"
