@@ -350,12 +350,15 @@ def people_fallback_counts(people: str) -> list[str]:
 
 
 def list_room_options(page: Page) -> list[str]:
-    """Return the room labels currently offered by the Espacio fisico select."""
+    """Return the room labels currently offered by the Espacio fisico select.
+
+    The menu is always dismissed, even when empty: a lingering modal overlay
+    would block the next people count retry.
+    """
     options = _open_menu_options(page, "place")
     labels = [(options.nth(i).inner_text() or "").strip() for i in range(options.count())]
-    if labels:
-        page.keyboard.press("Escape")
-        page.wait_for_timeout(200)
+    page.keyboard.press("Escape")
+    page.wait_for_timeout(200)
     return [label for label in labels if label]
 
 
