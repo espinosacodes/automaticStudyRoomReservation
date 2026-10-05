@@ -486,36 +486,24 @@ def capture_confirmation(
             msg = f"FINALIZAR click timed out: {short_timeout(exc)}"
             raise PlaywrightTimeoutError(msg) from exc
 
-    logger.info("Block %s-%s: waiting for the portal dialog", start, end)
-    confirmation = page.get_by_role("dialog").filter(
-        has_text=re.compile(r"Confirmaci.n de nueva reserva|No es posible continuar", re.IGNORECASE)
-    )
-    try:
-        confirmation.wait_for(state="visible", timeout=DEFAULT_TIMEOUT_MS)
-    except PlaywrightTimeoutError:
-        try:
-            page.wait_for_selector("[role='dialog']", timeout=DEFAULT_TIMEOUT_MS)
-        except PlaywrightTimeoutError as exc:
-            msg = f"no dialog after FINALIZAR: {short_timeout(exc)}"
-            raise PlaywrightTimeoutError(msg) from exc
-        dialog = page.locator("[role='dialog']").first
-    else:
-        dialog = confirmation.first
-    dialog_text = dialog.inner_text()
-    if re.search(r"No es posible continuar", dialog_text, re.IGNORECASE):
-        reason = " ".join(dialog_text.split())
-        logger.warning("Block %s-%s refused by portal: %s", start, end, reason)
-        dismiss = dialog.get_by_role("button", name="OK", exact=True)
-        if dismiss.count():
-            dismiss.click()
-            page.wait_for_timeout(400)
-        raise AccountLimit(f"portal refused: {reason[:200]}")
-
     logger.info("Block %s-%s: clicking CONFIRMAR", start, end)
-    confirm = dialog.get_by_role("button", name="CONFIRMAR", exact=True)
+    confirm = page.get_by_role("button", name="CONFIRMAR", exact=True)
     try:
         confirm.wait_for(state="visible", timeout=DEFAULT_TIMEOUT_MS)
     except PlaywrightTimeoutError as exc:
+        # The button never appeared, so the portal may have refused instead.
+        # Its modals are plain divs without role="dialog", so read the page
+        # text for the verdict before reporting a bare timeout.
+        body_text = page.locator("body").inner_text()
+        refused = re.search(r"No es posible continuar[\s\S]{0,300}", body_text, re.IGNORECASE)
+        if refused:
+            reason = " ".join(refused.group(0).split())
+            logger.warning("Block %s-%s refused by portal: %s", start, end, reason)
+            dismiss = page.get_by_role("button", name="OK", exact=True)
+            if dismiss.count():
+                dismiss.click()
+                page.wait_for_timeout(400)
+            raise AccountLimit(f"portal refused: {reason[:200]}")
         raise PlaywrightTimeoutError(f"CONFIRMAR never visible: {short_timeout(exc)}") from exc
     try:
         confirm.scroll_into_view_if_needed(timeout=DEFAULT_TIMEOUT_MS)
