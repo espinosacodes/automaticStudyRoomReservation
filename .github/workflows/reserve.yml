@@ -1,9 +1,10 @@
 name: reserve
 
 on:
-  schedule:
-    # 23:59 America/Bogota is 04:59 UTC the next day.
-    - cron: "59 4 * * *"
+  # No GitHub schedule: its ticks arrived 5 to 7 hours late, while today's
+  # bookings were still pending and the portal refused every account. The
+  # Cloudflare Worker cron in wrangler.jsonc dispatches this workflow at
+  # 20:30 and 22:30 America/Bogota, Sunday to Thursday.
   workflow_dispatch:
     inputs:
       dry_run:

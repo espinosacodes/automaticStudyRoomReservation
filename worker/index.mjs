@@ -87,6 +87,22 @@ async function handler(request, env) {
   response.headers.set('x-frame-options', 'DENY')
   return response
 }
-export default { async fetch(request, env) {
-  try { return await handler(request, env) } catch { return json({ error: 'Authentication temporarily unavailable' }, 503) }
-} }
+// GitHub delays scheduled workflows by hours and drops ticks, so the Worker
+// cron dispatches the reserve workflow at a precise evening time instead.
+async function dispatchReserve(env) {
+  if (!env.GITHUB_DISPATCH_TOKEN) throw new Error('GITHUB_DISPATCH_TOKEN is not set')
+  const response = await fetch('https://api.github.com/repos/espinosacodes/automaticStudyRoomReservation/actions/workflows/reserve.yml/dispatches', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + env.GITHUB_DISPATCH_TOKEN, Accept: 'application/vnd.github+json', 'User-Agent': 'reservation-worker', 'X-GitHub-Api-Version': '2022-11-28' },
+    body: JSON.stringify({ ref: 'main' }),
+  })
+  if (!response.ok) throw new Error(`Workflow dispatch failed: ${response.status} ${await response.text()}`)
+}
+export default {
+  async fetch(request, env) {
+    try { return await handler(request, env) } catch { return json({ error: 'Authentication temporarily unavailable' }, 503) }
+  },
+  async scheduled(_event, env, ctx) {
+    ctx.waitUntil(dispatchReserve(env))
+  },
+}

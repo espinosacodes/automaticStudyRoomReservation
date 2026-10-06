@@ -195,3 +195,37 @@ def test_pick_date_prefers_visible_enabled_cell(monkeypatch):
 
     visible.click.assert_called_once()
     hidden.click.assert_not_called()
+
+
+
+def _block(start, end, account, status):
+    return {"start": start, "end": end, "account": account, "status": status}
+
+
+def test_booked_blocks_reads_only_real_bookings_for_the_date(tmp_path, monkeypatch):
+    runs = [
+        {
+            "target_date": "2026-10-07",
+            "dry_run": False,
+            "blocks": [
+                _block("08:00", "10:00", "1054****84", "success"),
+                _block("10:00", "12:00", "", "account-limit"),
+            ],
+        },
+        {
+            "target_date": "2026-10-07",
+            "dry_run": True,
+            "blocks": [_block("12:00", "14:00", "x", "success")],
+        },
+        {
+            "target_date": "2026-10-06",
+            "dry_run": False,
+            "blocks": [_block("14:00", "16:00", "y", "success")],
+        },
+    ]
+    status = tmp_path / "status.json"
+    status.write_text(main.json.dumps({"runs": runs}))
+    monkeypatch.setattr(main, "STATUS_FILE", status)
+    assert main.booked_blocks(date(2026, 10, 7)) == {("08:00", "10:00"): "1054****84"}
+    monkeypatch.setattr(main, "STATUS_FILE", tmp_path / "missing.json")
+    assert main.booked_blocks(date(2026, 10, 7)) == {}

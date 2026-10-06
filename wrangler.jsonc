@@ -15,5 +15,9 @@
       "custom_domain": true
     }
   ],
-  "main": "worker/index.mjs"
+  "main": "worker/index.mjs",
+  // 20:30 and 22:30 America/Bogota, Sunday to Thursday (UTC Monday to Friday).
+  // Each account may hold only 2 hours of pending bookings, so tomorrow can be
+  // booked only after today's blocks end. The second tick retries failures.
+  "triggers": { "crons": ["30 1,3 * * MON-FRI"] }
 }

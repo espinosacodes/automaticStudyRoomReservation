@@ -791,6 +791,28 @@ def run_day(
 # --------------------------------------------------------------------------
 # Status output for the web page
 # --------------------------------------------------------------------------
+def booked_blocks(target_date: date) -> dict[tuple[str, str], str]:
+    """Blocks a previous run already booked for the date, mapped to the masked account.
+
+    The evening cron fires twice, so the retry must skip these blocks or it
+    would book the same slot again with another account.
+    """
+    if not STATUS_FILE.exists():
+        return {}
+    try:
+        runs = json.loads(STATUS_FILE.read_text()).get("runs", [])
+    except (json.JSONDecodeError, AttributeError):
+        return {}
+    booked: dict[tuple[str, str], str] = {}
+    for run in runs:
+        if run.get("dry_run") or run.get("target_date") != target_date.isoformat():
+            continue
+        for block in run.get("blocks", []):
+            if block.get("status") == "success":
+                booked[(block["start"], block["end"])] = block.get("account", "")
+    return booked
+
+
 def write_status(record: dict) -> None:
     """Prepend the fresh run to status.json, keeping a bounded history."""
     runs: list[dict] = []
@@ -830,6 +852,15 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0
     blocks = build_schedule(target_date)
+    booked = {} if args.dry_run else booked_blocks(target_date)
+    if booked:
+        used = set(booked.values())
+        blocks = [block for block in blocks if (block[1], block[2]) not in booked]
+        accounts = [account for account in accounts if mask_username(account.username) not in used]
+        logger.info("%d block(s) already booked for %s, skipping them", len(booked), target_date)
+        if not blocks:
+            logger.info("Every block for %s is already booked, nothing to do", target_date)
+            return 0
     if len(accounts) < len(blocks):
         logger.warning(
             "Only %d account(s) for %d block(s): a fully free day cannot be "
