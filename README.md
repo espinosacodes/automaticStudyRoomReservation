@@ -15,7 +15,8 @@ six 2 hour blocks and each block uses a different account from a rotation pool.
    splits 08:00 to 20:00 into six 2 hour blocks, and logs in per block with a
    different account.
 3. Each block fills the `addReserve` form, screenshots before and after, and
-   submits. One failing block never aborts the day.
+   submits. One failing block never aborts the day, and confirmed blocks remain
+   booked even when other blocks fail.
 4. Screenshots and `status.json` are uploaded as artifacts and the status page
    is redeployed with the fresh data.
 

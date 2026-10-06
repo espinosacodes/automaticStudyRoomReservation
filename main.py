@@ -875,6 +875,13 @@ def main(argv: list[str] | None = None) -> int:
         in {"failed", "unconfirmed", "no-account", "account-limit", "bad-credentials", "infra-failure"}
     ]
     if failed:
+        if succeeded:
+            logger.warning(
+                "Partial success: %d of %d block(s) confirmed; other blocks remain in status.json",
+                succeeded,
+                len(results),
+            )
+            return 0
         logger.error("%d block(s) failed", len(failed))
         return 1
     logger.info("All %d block(s) ok", len(results))

@@ -60,7 +60,7 @@ Reuse one helper: `core/reservation.py:get_next_reservation_date` plus a new pur
 
 For each `(date, startTime, endTime, credential)` in order:
 
-1. Login with that credential at `https://banner9.icesi.edu.co/ic_reservas/login` (fill `#username` and `#password`, click `button[type='submit']`, wait for `Bienvenido` or URL change). On timeout, try next credential for that same block once, then mark block as failed and continue to next block.
+1. Login with that credential at `https://banner9.icesi.edu.co/ic_reservas/login` (fill `#username` and `#password`, click `button[type='submit']`, wait for `Bienvenido` or URL change). On timeout, try the next credential for that block, then mark it failed and continue.
 2. Click button containing `AGREGAR` and `RESERVA`, wait for `/addReserve`.
 3. Fill form:
    - Activity: `Study Session` (via `RESERVATION_ACTIVITY`).
@@ -70,7 +70,7 @@ For each `(date, startTime, endTime, credential)` in order:
    - Room: select the 10 person room. If the portal uses a dropdown or radio, pick value matching `RESERVATION_ROOM` env, else first available. Log the chosen room label.
 4. Take `before_submit_{block}.png`.
 5. Submit unless `--dry-run`. Take `after_submit_{block}.png`.
-6. Assert success marker (portal confirmation text or URL change). Log masked username and block. On failure save artifact and continue; do not abort the whole day because one block failed.
+6. Assert success marker (portal confirmation text or URL change). Log masked username and block. On definite portal refusal, try the next account for that block. On other failures, save artifacts and continue. Keep confirmed blocks if others fail, and report partial success when at least one block is confirmed.
 7. Logout or clear context before next block to avoid session bleed.
 
 Total per night: up to 6 sequential Playwright sessions. Each is independent so a rate limit on one account does not block the others.
