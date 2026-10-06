@@ -77,6 +77,9 @@ async function handler(request, env) {
   const machine = path === '/status.json' && env.STATUS_READ_TOKEN && request.headers.get('authorization') === `Bearer ${env.STATUS_READ_TOKEN}`
   if (!shell && !machine && !await member(request, env)) return json({ error: 'Sign in required' }, 401)
   const asset = await env.ASSETS.fetch(request)
+  if (path.startsWith('/bookings/') && path.endsWith('.pdf') && (!asset.ok || !asset.headers.get('content-type')?.includes('application/pdf'))) {
+    return new Response('Confirmation PDF not found', { status: 404, headers: { 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } })
+  }
   const response = new Response(asset.body, asset)
   response.headers.set('cache-control', shell && path.startsWith('/assets/') ? 'public, max-age=31536000, immutable' : 'private, no-store')
   response.headers.set('x-content-type-options', 'nosniff')

@@ -1,7 +1,7 @@
 /**
  * Architecture of the system as an infrastructure flow, following the
  * reference diagram: users on the left, compute, a dashed routes box listing
- * the five blocks, the dispatch namespace, a Data & Storage column, the
+ * the six blocks, the dispatch namespace, a Data & Storage column, the
  * coordinator, and a browser mock showing this page on the right.
  * Dashed gray connectors run left to right; each column has its own accent.
  */

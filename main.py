@@ -7,7 +7,7 @@ Flow per 2 hour block, verified against the live portal:
   espacio fisico -> screenshot -> FINALIZAR (unless dry run).
 
 The portal is a Material UI wizard, so the date and time pickers are driven
-through their dialogs and the selects through their listboxes. Five blocks are
+through their dialogs and the selects through their listboxes. Six blocks are
 booked with rotating Banner accounts because the portal caps a booking at two
 hours per user.
 
@@ -691,7 +691,7 @@ def run_block(
         logger.warning("Block %s errored: %s", f"{start}-{end}", result["detail"])
         return result
     finally:
-        if submission_started and result["status"] != "success":
+        if submission_started and result["status"] not in {"success", "account-limit"}:
             submission_error = result.get("detail", "").strip()
             result.update(
                 status="unconfirmed",

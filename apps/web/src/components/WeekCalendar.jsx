@@ -22,8 +22,10 @@ const HOURS = [
   '15:00',
   '16:00',
   '17:00',
+  '18:00',
+  '19:00',
 ]
-const BLOCK_HOURS = ['08:00', '10:00', '12:00', '14:00', '16:00']
+const BLOCK_HOURS = ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00']
 
 function parseDate(value) {
   const [year, month, day] = (value || '').split('-').map(Number)
@@ -93,7 +95,7 @@ export function WeekCalendar({ bookings, targetDate, selectedDay, onSelectDay, a
           </div>
           <div className="poll-fact">
             <p className="poll-fact-label">Window</p>
-            <p className="poll-fact-value">Weekdays, 08:00 to 18:00</p>
+            <p className="poll-fact-value">Weekdays, 08:00 to 20:00</p>
           </div>
           <div className="poll-fact">
             <p className="poll-fact-label">Room</p>
@@ -189,7 +191,7 @@ export function WeekCalendar({ bookings, targetDate, selectedDay, onSelectDay, a
         <span>
           <i className="swatch free" aria-hidden="true" /> Not reserved
         </span>
-        <span>Weekdays only, 08:00 to 18:00 Bogota</span>
+        <span>Weekdays only, 08:00 to 20:00 Bogota</span>
       </div>
     </div>
   )

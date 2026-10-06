@@ -100,7 +100,7 @@ export function AuthGate({ children }) {
             </div>
           </div>
         </section>
-        <p className="login-footnote">Study rooms · Monday to Friday · 08:00 to 18:00</p>
+        <p className="login-footnote">Study rooms · Monday to Friday · 08:00 to 20:00</p>
       </main>
       </div>
     </>

@@ -1,18 +1,18 @@
 # automaticStudyRoomReservation
 
 Automates the nightly reservation of a 10 person library study room at ICESI
-(`https://banner9.icesi.edu.co/ic_reservas`), 08:00 to 18:00 Monday to Friday,
+(`https://banner9.icesi.edu.co/ic_reservas`), 08:00 to 20:00 Monday to Friday,
 using Playwright. A small status page lives at
 [reservation.getcuria.us](https://reservation.getcuria.us).
 
 The portal caps each account at 2 hours per booking, so the day is split into
-five 2 hour blocks and each block uses a different account from a rotation pool.
+six 2 hour blocks and each block uses a different account from a rotation pool.
 
 ## How it works
 
 1. GitHub Actions fires at `23:59 America/Bogota` (`59 4 * * *` UTC).
 2. `main.py` computes the next weekday (weekends roll forward to Monday),
-   splits 08:00 to 18:00 into five 2 hour blocks, and logs in per block with a
+   splits 08:00 to 20:00 into six 2 hour blocks, and logs in per block with a
    different account.
 3. Each block fills the `addReserve` form, screenshots before and after, and
    submits. One failing block never aborts the day.
@@ -59,7 +59,7 @@ array for the rotation. CI reads `BANNER_USERS_JSON` instead.
   `Sala de estudio 204BI [Capacidad espacio: 10]`, the 10 person room. If that
   room is already booked for a block, the block is reported as `unavailable`.
 - Valid reservation hours are Monday to Friday 07:00 to 21:00.
-- Each user can hold only one 2 hour block per day, so five blocks need five
+- Each user can hold only one 2 hour block per day, so six blocks need six
   distinct accounts. The runner never reuses an account within a run and frees
   one back to the pool when its block is unavailable.
 - `FINALIZAR` only validates. A confirmation modal then appears and `CONFIRMAR`
@@ -87,7 +87,7 @@ See `docs/SPEC.md`, `docs/ARCHITECTURE.md`, and `docs/DESIGN.md` for details.
 
 ## Required GitHub configuration
 
-Secrets: `BANNER_USERS_JSON` (five accounts, JSON array), `CLOUDFLARE_API_TOKEN`.
+Secrets: `BANNER_USERS_JSON` (six accounts, JSON array), `CLOUDFLARE_API_TOKEN`.
 Variables: `RESERVATION_ROOM`, `RESERVATION_ACTIVITY`.
 
 ## Official reservation receipts

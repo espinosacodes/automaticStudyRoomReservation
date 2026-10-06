@@ -2,9 +2,8 @@ name: reserve
 
 on:
   schedule:
-    # Hourly from 11:59 through 17:59 America/Bogota (UTC-5, no DST). GitHub
-    # delays scheduled ticks, so repeated runs retry failed blocks.
-    - cron: "59 16-22 * * *"
+    # 23:59 America/Bogota is 04:59 UTC the next day.
+    - cron: "59 4 * * *"
   workflow_dispatch:
     inputs:
       dry_run:
@@ -21,6 +20,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
+  actions: read
   contents: read
 
 jobs:
@@ -62,6 +62,35 @@ jobs:
           RESERVATION_DATE: ${{ inputs.reservation_date }}
         run: python main.py ${{ inputs.dry_run && '--dry-run' || '' }}
 
+      - name: Restore published confirmation PDFs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p apps/web/public/bookings .pdf-restore
+          restored=0
+          mapfile -t run_ids < <(
+            jq -r '.runs[]?.blocks[]?
+              | select(.pdf_status == "captured")
+              | .confirmation_run_url // empty
+              | select(test("/runs/[0-9]+$"))
+              | capture("/runs/(?<id>[0-9]+)$").id' status.json 2>/dev/null | sort -u
+          )
+          for run_id in "${run_ids[@]}"; do
+            [ "$run_id" = "$GITHUB_RUN_ID" ] && continue
+            destination=".pdf-restore/$run_id"
+            if gh run download "$run_id" --repo "$GITHUB_REPOSITORY" \
+              --name reservation-evidence --dir "$destination" >/dev/null 2>&1; then
+              while IFS= read -r -d '' pdf; do
+                filename="${pdf##*/}"
+                if [ ! -f "apps/web/public/bookings/$filename" ]; then
+                  cp "$pdf" "apps/web/public/bookings/$filename"
+                  restored=$((restored + 1))
+                fi
+              done < <(find "$destination" -type f -name '*.pdf' -print0)
+            fi
+          done
+          echo "Restored $restored confirmation PDF(s) from Actions artifacts."
+
       - uses: pnpm/action-setup@v4
 
       - uses: actions/setup-node@v4
@@ -92,6 +121,23 @@ jobs:
           if [ -f status.json ]; then
             cp status.json apps/web/public/status.json
           fi
+          while IFS= read -r pdf; do
+            case "$pdf" in
+              bookings/confirmation_*.pdf) ;;
+              *) continue ;;
+            esac
+            target="apps/web/public/$pdf"
+            if [ ! -f "$target" ]; then
+              mkdir -p "$(dirname "$target")"
+              temporary="$target.tmp"
+              if curl -fsS --max-time 10 "https://reservation.getcuria.us/$pdf" -o "$temporary" \
+                && [ "$(head -c 5 "$temporary")" = "%PDF-" ]; then
+                mv "$temporary" "$target"
+              else
+                rm -f "$temporary"
+              fi
+            fi
+          done < <(jq -r '.runs[]?.blocks[]?.pdf // empty' status.json 2>/dev/null || true)
           if ls bookings/*.pdf >/dev/null 2>&1; then
             mkdir -p apps/web/public/bookings
             cp bookings/*.pdf apps/web/public/bookings/

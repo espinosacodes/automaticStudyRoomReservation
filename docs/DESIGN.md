@@ -75,7 +75,7 @@ Success green is reserved for check marks, never for primary actions.
   orange border and a Latest badge, blocks as check rows (green check booked,
   dash skipped, cross failed, clock dry run).
 - `ArchitectureDiagram`: inline SVG flow — accounts and viewer (orange),
-  compute (blue), dashed routes box listing the five blocks, dispatch Cron
+  compute (blue), dashed routes box listing the six blocks, dispatch Cron
   (blue), Data & Storage column (pink), Worker coordinator (blue), browser
   mock showing the page. Below 860px it swaps to a readable stacked list
   instead of a shrunken SVG. Size every node to its longest label.

@@ -52,7 +52,7 @@ def test_get_next_reservation_date_anchors_to_bogota_time():
     assert get_next_reservation_date(utc_now) == date(2026, 9, 22)
 
 
-def test_split_into_five_two_hour_blocks():
+def test_split_into_six_two_hour_blocks():
     blocks = split_into_blocks(date(2026, 9, 22))
     assert blocks == [
         ("2026-09-22", "08:00", "10:00"),
@@ -60,6 +60,7 @@ def test_split_into_five_two_hour_blocks():
         ("2026-09-22", "12:00", "14:00"),
         ("2026-09-22", "14:00", "16:00"),
         ("2026-09-22", "16:00", "18:00"),
+        ("2026-09-22", "18:00", "20:00"),
     ]
 
 

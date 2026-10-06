@@ -132,7 +132,7 @@ export default function App() {
   const viewDay = selectedDay || defaultDay
   const dayBookings = bookings.filter((booking) => booking.date === viewDay)
   const bookedSlots = dayBookings.length
-  const capacity = 5
+  const capacity = 6
 
   // Moving between weeks only changes the week shown. It must not change the
   // selected reservation day, or the bookings table would blank out whenever
@@ -161,7 +161,7 @@ export default function App() {
         </h1>
         <p>
           Track confirmed bookings, daily coverage, and official reservation receipts. The schedule
-          targets five two hour blocks, Monday to Friday, 08:00 to 18:00 Bogota.
+          targets six two hour blocks, Monday to Friday, 08:00 to 20:00 Bogota.
         </p>
       </section>
 
@@ -180,7 +180,7 @@ export default function App() {
           <StatCard
             label="Coverage"
             value={`${Math.min(100, Math.round((bookedSlots / capacity) * 100))}%`}
-            hint="08:00 to 18:00 window"
+            hint="08:00 to 20:00 window"
           />
           <StatCard
             label="Last result"

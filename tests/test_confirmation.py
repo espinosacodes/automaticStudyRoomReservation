@@ -118,6 +118,34 @@ def test_uncertain_submission_is_not_retried(monkeypatch):
     capture.assert_called_once()
 
 
+def test_definite_portal_refusal_stays_retryable(monkeypatch):
+    browser = MagicMock()
+    context = browser.new_context.return_value
+    page = context.new_page.return_value
+    for helper in ("login", "open_add_reserve", "accept_requester_step"):
+        monkeypatch.setattr(main, helper, MagicMock())
+    monkeypatch.setattr(main, "fill_reservation", MagicMock(return_value="204BI"))
+    monkeypatch.setattr(main.config, "activity_name", lambda: "Reunión")
+    monkeypatch.setattr(main.config, "room_name", lambda: "204BI")
+    monkeypatch.setattr(main.config, "people_count", lambda: "10")
+    monkeypatch.setattr(
+        main,
+        "capture_confirmation",
+        MagicMock(side_effect=main.AccountLimit("portal refused: two-hour limit")),
+    )
+
+    result = main.run_block(
+        browser,
+        Account("test-account", "secret"),
+        date(2026, 9, 28),
+        "08:00",
+        "10:00",
+        False,
+    )
+
+    assert result["status"] == "account-limit"
+
+
 def test_unselectable_date_skips_the_rest_of_the_day(monkeypatch):
     browser = MagicMock()
     calls = []
