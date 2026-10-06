@@ -127,7 +127,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--target-date",
         default=os.getenv("RESERVATION_DATE") or None,
-        help="weekday to reserve in YYYY-MM-DD format, within the next two days",
+        help="weekday to reserve in YYYY-MM-DD format, today or within the next two days",
     )
     return parser.parse_args(argv)
 
@@ -794,7 +794,7 @@ def run_day(
 def booked_blocks(target_date: date) -> dict[tuple[str, str], str]:
     """Blocks a previous run already booked for the date, mapped to the masked account.
 
-    The evening cron fires twice, so the retry must skip these blocks or it
+    The nightly cron fires twice, so the retry must skip these blocks or it
     would book the same slot again with another account.
     """
     if not STATUS_FILE.exists():
@@ -845,11 +845,7 @@ def main(argv: list[str] | None = None) -> int:
         logger.error("Invalid reservation date: %s", exc)
         return 2
     if target_date is None:
-        logger.info(
-            "No bookable weekday inside the portal window. "
-            "Friday nights have nothing to do: the weekend is skipped by choice "
-            "and Monday sits outside the +2 day picker window."
-        )
+        logger.info("Today is a weekend day, skipped by choice. Nothing to book.")
         return 0
     blocks = build_schedule(target_date)
     booked = {} if args.dry_run else booked_blocks(target_date)

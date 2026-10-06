@@ -197,7 +197,6 @@ def test_pick_date_prefers_visible_enabled_cell(monkeypatch):
     hidden.click.assert_not_called()
 
 
-
 def _block(start, end, account, status):
     return {"start": start, "end": end, "account": account, "status": status}
 

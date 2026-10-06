@@ -7,12 +7,12 @@ instead of duplicating the day mapping or the block splitting.
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
 # The university and therefore the booking window live in Bogota time. The
-# GitHub cron fires at 23:59 Bogota which is 04:59 UTC the next day, so every
-# date computation must be anchored here or the target day shifts by one.
+# cron fires just after midnight Bogota, which is 05:05 UTC, so every date
+# computation must be anchored here or the target day shifts by one.
 BOGOTA_TZ = ZoneInfo("America/Bogota")
 
 DAY_NAMES = [
@@ -61,13 +61,13 @@ def get_next_reservation_date(
 ) -> date | None:
     """Return the day the automation should book, or None when there is none.
 
-    Measured against the live portal: a target 2 days out is selectable, but a
-    Monday 3 days out was refused by the date picker even though the portal's
-    own rule text mentions a maximum of 3 days. So the scheduler only looks at
-    tomorrow and the day after, skipping Saturday and Sunday by team choice.
-    On a Friday night that leaves nothing (weekend skipped, Monday outside the
-    +2 day window), and the run must exit quietly instead of failing.
+    The portal caps every account at 2 hours of reservations dated today or
+    later. A booking keeps counting until its day is over, even after the
+    block ends, so an account holding today cannot book tomorrow. The only
+    cycle that works is booking the same day right after midnight, once
+    yesterday's booking stops counting. Weekends are skipped by team choice.
 
+    A manual ``requested_date`` may be today or up to MAX_DAYS_AHEAD days out.
     Naive input is treated as Bogota time and aware input is converted to it.
     """
     moment = now or now_bogota()
@@ -83,17 +83,13 @@ def get_next_reservation_date(
             else requested_date
         )
         days_ahead = (target - today).days
-        if not 1 <= days_ahead <= MAX_DAYS_AHEAD or target.weekday() >= 5:
+        if not 0 <= days_ahead <= MAX_DAYS_AHEAD or target.weekday() >= 5:
             raise ValueError(
-                f"requested date {target} must be a weekday 1 to {MAX_DAYS_AHEAD} days ahead"
+                f"requested date {target} must be a weekday 0 to {MAX_DAYS_AHEAD} days ahead"
             )
         return target
 
-    for offset in (1, 2):
-        candidate = today + timedelta(days=offset)
-        if candidate.weekday() < 5:
-            return candidate
-    return None
+    return today if today.weekday() < 5 else None
 
 
 def split_into_blocks(

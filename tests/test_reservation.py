@@ -14,42 +14,33 @@ from core.reservation import (
 @pytest.mark.parametrize(
     ("now", "expected"),
     [
-        # Thursday -> Friday (+1)
-        (datetime(2026, 9, 24, 9, 0), date(2026, 9, 25)),
-        # Friday -> nothing (weekend skipped, Monday outside the +2 window)
-        (datetime(2026, 9, 25, 9, 0), None),
-        # Saturday -> Monday (+2)
-        (datetime(2026, 9, 26, 9, 0), date(2026, 9, 28)),
-        # Sunday -> Monday (+1)
-        (datetime(2026, 9, 27, 9, 0), date(2026, 9, 28)),
-        # Monday -> Tuesday (+1)
-        (datetime(2026, 9, 28, 9, 0), date(2026, 9, 29)),
+        # Weekdays book the same day, right after midnight.
+        (datetime(2026, 9, 24, 0, 5), date(2026, 9, 24)),
+        (datetime(2026, 9, 25, 0, 5), date(2026, 9, 25)),
+        (datetime(2026, 9, 28, 0, 5), date(2026, 9, 28)),
+        # Weekends are skipped by choice.
+        (datetime(2026, 9, 26, 0, 5), None),
+        (datetime(2026, 9, 27, 0, 5), None),
     ],
 )
 def test_get_next_reservation_date(now, expected):
     assert get_next_reservation_date(now) == expected
 
 
-def test_get_next_reservation_date_never_lands_on_a_weekend():
-    for day in range(1, 15):
-        target = get_next_reservation_date(datetime(2026, 9, day, 9, 0))
-        if target is not None:
-            assert target.weekday() < 5, target
-
-
-def test_get_next_reservation_date_stays_inside_the_window():
-    for day in range(1, 15):
-        now = datetime(2026, 9, day, 9, 0)
-        target = get_next_reservation_date(now)
-        if target is not None:
-            assert 1 <= (target - now.date()).days <= 2, target
+def test_get_next_reservation_date_accepts_manual_dates_inside_the_window():
+    now = datetime(2026, 10, 6, 12, 0)
+    assert get_next_reservation_date(now, "2026-10-06") == date(2026, 10, 6)
+    assert get_next_reservation_date(now, "2026-10-08") == date(2026, 10, 8)
+    for bad in ("2026-10-05", "2026-10-09", "2026-10-10"):
+        with pytest.raises(ValueError):
+            get_next_reservation_date(now, bad)
 
 
 def test_get_next_reservation_date_anchors_to_bogota_time():
-    # 04:59 UTC on Tuesday is 23:59 Monday in Bogota, so the target is Tuesday.
-    # A naive UTC reading would wrongly target Wednesday.
-    utc_now = datetime(2026, 9, 22, 4, 59, tzinfo=UTC)
-    assert get_next_reservation_date(utc_now) == date(2026, 9, 22)
+    # 05:05 UTC on Tuesday is 00:05 Tuesday in Bogota, but 04:59 UTC on
+    # Tuesday is still Monday in Bogota.
+    assert get_next_reservation_date(datetime(2026, 9, 22, 5, 5, tzinfo=UTC)) == date(2026, 9, 22)
+    assert get_next_reservation_date(datetime(2026, 9, 22, 4, 59, tzinfo=UTC)) == date(2026, 9, 21)
 
 
 def test_split_into_six_two_hour_blocks():
